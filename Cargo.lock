@@ -6559,6 +6559,7 @@ dependencies = [
  "arm-gic",
  "backtracer_core",
  "bitflags 2.9.0",
+ "blake3",
  "chacha20",
  "digest",
  "fdt",

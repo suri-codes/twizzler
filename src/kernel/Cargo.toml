@@ -17,6 +17,10 @@ nonoverlapping_interval_tree = { version = "0.1.3", default-features = false }
 twizzler-abi = { path = "../lib/twizzler-abi", default-features = false, features = [
     "kernel",
 ] }
+blake3 = { version = "1.8.2", default-features = false, features = [
+    "traits-preview",
+    "no_neon"
+] }
 twizzler-rt-abi = { version = "0.99", features = [
     "kernel",
 ], default-features = false }

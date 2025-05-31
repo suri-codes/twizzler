@@ -41,9 +41,16 @@ mod test {
     }
 
     #[kernel_test]
-    fn bench_hashing() {
+    fn bench_sha256_hashing() {
         benchmark(|| {
             let hash = sha256(b"hello, world");
+            black_box(hash);
+        });
+    }
+
+    fn bench_blake3_hashing() {
+        benchmark(|| {
+            let hash = blake3::hash(b"hello, world").as_bytes();
             black_box(hash);
         });
     }
