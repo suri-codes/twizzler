@@ -106,7 +106,7 @@ impl Display for BenchResult {
         writeln!(f, "Max:        {:.2} ns/iter", self.max_ns)?;
         writeln!(
             f,
-            "Variacne (std_dev ^ 2):        {:.2} ns/iter",
+            "variance (std_dev ^ 2):        {:.2} ns/iter",
             self.variance
         )?;
         Ok(())
@@ -149,7 +149,7 @@ where
         .sum::<f64>()
         / iterations as f64;
 
-    // let std_dev_ns = variance.sqrt();
+    let std_dev = (variance as u32).isqrt();
 
     BenchResult {
         iterations,
@@ -157,7 +157,7 @@ where
         avg_ns,
         min_ns,
         max_ns,
-        variance,
+        variance: std_dev,
     }
 }
 
