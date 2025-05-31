@@ -6,7 +6,7 @@ use test::Bencher;
 use twizzler::object::TypedObject;
 use twizzler_abi::{
     object::Protections,
-    syscall::{LifetimeType, ObjectCreate},
+    syscall::{LifetimeType, ObjectCreate, ObjectCreateFlags},
 };
 
 use crate::*;
@@ -35,9 +35,9 @@ fn capability_creation(b: &mut Bencher) {
 fn keypair_creation(b: &mut Bencher) {
     let object_create_spec = ObjectCreate::new(
         Default::default(),
+        LifetimeType::Volatile,
         Default::default(),
-        Default::default(),
-        Default::default(),
+        ObjectCreateFlags::empty(),
         Protections::all(),
     );
 

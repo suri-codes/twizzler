@@ -86,7 +86,7 @@ mod test {
         let private_key = SigningKey::from_slice(&key).unwrap();
         let message =
             b"ECDSA proves knowledge of a secret number in the context of a single message";
-        let signature: Signature = black_box(sign(&private_key, message));
+        let signature: Signature = sign(&private_key, message);
         let pub_key: VerifyingKey = private_key.into();
 
         benchmark(|| {
