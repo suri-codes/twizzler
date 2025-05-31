@@ -157,7 +157,7 @@ where
         avg_ns,
         min_ns,
         max_ns,
-        variance: std_dev,
+        variance: std_dev as f64,
     }
 }
 
