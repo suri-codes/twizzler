@@ -68,3 +68,10 @@ fn capability_verification(b: &mut Bencher) {
             .expect("capability should have been verified.");
     })
 }
+
+#[bench]
+fn sec_ctx_creation(b: &mut Bencher) {
+    b.iter(|| {
+        let sec_ctx = SecCtx::default();
+    })
+}
