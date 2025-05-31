@@ -90,7 +90,7 @@ pub struct BenchResult {
     avg_ns: f64,
     min_ns: u64,
     max_ns: u64,
-    std_dev: f64,
+    std_dev: u32,
 }
 
 impl Display for BenchResult {
