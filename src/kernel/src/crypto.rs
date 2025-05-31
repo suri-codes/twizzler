@@ -50,8 +50,8 @@ mod test {
 
     fn bench_blake3_hashing() {
         benchmark(|| {
-            let hash = blake3::hash(b"hello, world").as_bytes();
-            black_box(hash);
+            let hash = blake3::hash(b"hello, world");
+            black_box(hash.as_bytes());
         });
     }
 
