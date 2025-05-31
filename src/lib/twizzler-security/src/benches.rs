@@ -70,7 +70,7 @@ fn capability_verification(b: &mut Bencher) {
 }
 
 #[bench]
-fn sec_ctx_creation(b: &mut Bencher) {
+fn a_sec_ctx_creation(b: &mut Bencher) {
     b.iter(|| {
         let sec_ctx = SecCtx::default();
     })
