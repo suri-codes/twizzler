@@ -134,6 +134,18 @@ where
     let min_ns = *times.iter().min().unwrap();
     let max_ns = *times.iter().max().unwrap();
 
+    let variance = times
+        .iter()
+        .map(|&time| {
+            let diff = time as f64 - avg_ns;
+            diff * diff
+        })
+        .sum::<f64>()
+        / iterations as f64;
+
+    let std_dev_ns = variance.sqrt();
+
+    logln!("std_dev = +/- {}", std_dev_ns);
     BenchResult {
         iterations,
         total_ns,
@@ -156,7 +168,7 @@ where
     }
     let mut iterations = 100u64;
     // 1 second
-    let target_duration_ns = 1_000_000_000_u64;
+    let target_duration_ns = 2_000_000_000_u64;
 
     let clock = bench_clock().unwrap();
 
