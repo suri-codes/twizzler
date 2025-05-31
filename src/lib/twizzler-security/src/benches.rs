@@ -33,7 +33,6 @@ fn capability_creation(b: &mut Bencher) {
 #[bench]
 //WARN: passing in the LifetimeType as Persistent will cause the test to just hang permanently
 fn keypair_creation(b: &mut Bencher) {
-    println!("0");
     let object_create_spec = ObjectCreate::new(
         Default::default(),
         LifetimeType::Volatile,
@@ -41,10 +40,8 @@ fn keypair_creation(b: &mut Bencher) {
         ObjectCreateFlags::empty(),
         Protections::all(),
     );
-    println!("1");
 
     b.iter(|| {
-        println!("running!");
         let _ = core::hint::black_box(
             SigningKey::new_keypair(&SigningScheme::Ecdsa, object_create_spec)
                 .expect("Keys should be generated properly"),
