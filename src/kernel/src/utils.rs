@@ -90,6 +90,7 @@ pub struct BenchResult {
     avg_ns: f64,
     min_ns: u64,
     max_ns: u64,
+    variance: f64,
 }
 
 impl Display for BenchResult {
@@ -103,6 +104,11 @@ impl Display for BenchResult {
         writeln!(f, "Average:    {:.2} ns/iter", self.avg_ns)?;
         writeln!(f, "Min:        {:.2} ns/iter", self.min_ns)?;
         writeln!(f, "Max:        {:.2} ns/iter", self.max_ns)?;
+        writeln!(
+            f,
+            "Variacne (std_dev ^ 2):        {:.2} ns/iter",
+            self.variance
+        )?;
         Ok(())
     }
 }
@@ -143,15 +149,15 @@ where
         .sum::<f64>()
         / iterations as f64;
 
-    let std_dev_ns = variance.sqrt();
+    // let std_dev_ns = variance.sqrt();
 
-    logln!("std_dev = +/- {}", std_dev_ns);
     BenchResult {
         iterations,
         total_ns,
         avg_ns,
         min_ns,
         max_ns,
+        variance,
     }
 }
 
