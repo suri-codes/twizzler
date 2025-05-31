@@ -104,11 +104,7 @@ impl Display for BenchResult {
         writeln!(f, "Average:    {:.2} ns/iter", self.avg_ns)?;
         writeln!(f, "Min:        {:.2} ns/iter", self.min_ns)?;
         writeln!(f, "Max:        {:.2} ns/iter", self.max_ns)?;
-        writeln!(
-            f,
-            "variance (std_dev ^ 2):        {:.2} ns/iter",
-            self.variance
-        )?;
+        writeln!(f, "std_dev:    +-{:.2} ns/iter", self.std_dev)?;
         Ok(())
     }
 }
@@ -157,7 +153,7 @@ where
         avg_ns,
         min_ns,
         max_ns,
-        variance: std_dev as f64,
+        std_dev,
     }
 }
 
