@@ -48,6 +48,7 @@ mod test {
         });
     }
 
+    #[kernel_test]
     fn bench_blake3_hashing() {
         benchmark(|| {
             let hash = blake3::hash(b"hello, world");
