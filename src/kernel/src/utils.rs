@@ -90,7 +90,7 @@ pub struct BenchResult {
     avg_ns: f64,
     min_ns: u64,
     max_ns: u64,
-    variance: f64,
+    std_dev: f64,
 }
 
 impl Display for BenchResult {
@@ -104,7 +104,7 @@ impl Display for BenchResult {
         writeln!(f, "Average:    {:.2} ns/iter", self.avg_ns)?;
         writeln!(f, "Min:        {:.2} ns/iter", self.min_ns)?;
         writeln!(f, "Max:        {:.2} ns/iter", self.max_ns)?;
-        writeln!(f, "std_dev:    +-{:.2} ns/iter", self.std_dev)?;
+        writeln!(f, "std dev:    +-{:.2} ns/iter", self.std_dev)?;
         Ok(())
     }
 }
