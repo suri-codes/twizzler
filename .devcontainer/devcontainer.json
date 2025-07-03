@@ -1,0 +1,4 @@
+{
+  "name": "My Twizzler Dev Container",
+  "image": "suri312006/twizzler:latest"
+}
