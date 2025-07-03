@@ -2,7 +2,7 @@
   "name": "My Twizzler Dev Container",
   "image": "suri312006/twizzler:latest",
   "hostRequirements": {
-    "cpus": 16, 
+    "cpus": 4, 
     "storage": "64gb" 
   }
 }
