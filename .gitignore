@@ -6,3 +6,4 @@ workspace.code-workspace
 src/data
 toolchain/src/rust/library/twizzler-abis
 Makefile
+.vagrant
