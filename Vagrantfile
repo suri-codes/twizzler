@@ -43,6 +43,7 @@ Vagrant.configure("2") do |config|
     usermod -a -G kvm,libvirt vagrant
     # Enable KVM status check
     kvm-ok || echo "⚠️  KVM not available inside guest"
+    s
   SHELL
   # Provisioning as vagrant user
   config.vm.provision "shell", privileged: false, inline: <<-SHELL
