@@ -10,58 +10,24 @@ use anyhow::Context;
 use fs_extra::dir::CopyOptions;
 use guess_host_triple::guess_host_triple;
 use indicatif::{ProgressBar, ProgressStyle};
+use pathfinding::{
+    get_lld_bin, get_llvm_bin, get_llvm_native_runtime, get_llvm_native_runtime_install,
+    get_rust_lld, get_rustc_path, get_rustdoc_path, get_rustlib_bin,
+};
 use reqwest::Client;
 use toml_edit::DocumentMut;
+use utils::{download_file, install_build_tools};
 
 use crate::{
     triple::{all_possible_platforms, Triple},
     BootstrapOptions,
 };
 
-pub fn get_toolchain_path() -> anyhow::Result<String> {
-    Ok("toolchain/install".to_string())
-}
+mod pathfinding;
+mod utils;
 
-pub fn get_rustc_path() -> anyhow::Result<String> {
-    let toolchain = get_toolchain_path()?;
-    Ok(format!("{}/bin/rustc", toolchain))
-}
-
-pub fn get_rustdoc_path() -> anyhow::Result<String> {
-    let toolchain = get_toolchain_path()?;
-    Ok(format!("{}/bin/rustdoc", toolchain))
-}
-
-pub async fn download_file(client: &Client, url: &str, path: &str) -> anyhow::Result<()> {
-    use futures_util::StreamExt;
-    let res = client
-        .get(url)
-        .send()
-        .await
-        .with_context(|| format!("failed to download {}", url))?;
-    let total_size = res
-        .content_length()
-        .with_context(|| format!("failed to get content-length for {}", url))?;
-    println!("downloading {}", url);
-    let pb = ProgressBar::new(total_size);
-    pb.set_style(ProgressStyle::default_bar().template("{prefix}\n{spinner:.green} [{elapsed_precise}] [{wide_bar:.cyan/blue}] {bytes}/{total_bytes} ({bytes_per_sec}, {eta})")?.progress_chars("#>-"));
-
-    let mut file = File::create(path).with_context(|| format!("failed to create file {}", path))?;
-    let mut downloaded: u64 = 0;
-    let mut stream = res.bytes_stream();
-
-    while let Some(item) = stream.next().await {
-        let chunk = item.with_context(|| format!("error while downloading file {}", url))?;
-        file.write_all(&chunk)
-            .with_context(|| format!("error while writing to file {}", path))?;
-        let new = std::cmp::min(downloaded + (chunk.len() as u64), total_size);
-        downloaded = new;
-        pb.set_position(new);
-    }
-    pb.finish_and_clear();
-    println!("downloaded {} => {}", url, path);
-    Ok(())
-}
+pub use pathfinding::*;
+pub use utils::*;
 
 fn get_rust_commit() -> anyhow::Result<String> {
     let repo = git2::Repository::open("toolchain/src/rust")?;
@@ -150,7 +116,7 @@ fn build_crtx(name: &str, build_info: &Triple) -> anyhow::Result<()> {
     Ok(())
 }
 
-async fn download_files(client: &Client) -> anyhow::Result<()> {
+async fn download_efi_files(client: &Client) -> anyhow::Result<()> {
     // efi binaries for x86 machines
     download_file(
         client,
@@ -181,37 +147,6 @@ async fn download_files(client: &Client) -> anyhow::Result<()> {
     Ok(())
 }
 
-fn install_build_tools(_cli: &BootstrapOptions) -> anyhow::Result<()> {
-    println!("installing bindgen");
-    let status = Command::new("cargo")
-        .arg("install")
-        .arg("--root")
-        .arg("toolchain/install")
-        .arg("bindgen-cli")
-        .status()?;
-    if !status.success() {
-        anyhow::bail!("failed to install bindgen");
-    }
-
-    println!("installing meson & ninja");
-    let status = Command::new("pip3")
-        .arg("install")
-        .arg("--target")
-        .arg("toolchain/install/python")
-        .arg("--force-reinstall")
-        .arg("--ignore-installed")
-        .arg("--no-warn-script-location")
-        .arg("--upgrade")
-        .arg("meson")
-        .arg("ninja")
-        .status()?;
-    if !status.success() {
-        anyhow::bail!("failed to install meson and ninja");
-    }
-
-    Ok(())
-}
-
 pub(crate) fn do_bootstrap(cli: BootstrapOptions) -> anyhow::Result<()> {
     fs_extra::dir::create_all("toolchain/install", false)?;
     if !cli.skip_downloads {
@@ -219,7 +154,7 @@ pub(crate) fn do_bootstrap(cli: BootstrapOptions) -> anyhow::Result<()> {
         tokio::runtime::Builder::new_current_thread()
             .enable_all()
             .build()?
-            .block_on(download_files(&client))?;
+            .block_on(download_efi_files(&client))?;
     }
 
     install_build_tools(&cli)?;
@@ -530,50 +465,6 @@ pub fn set_static() {
     std::env::set_var("CARGO_TARGET_DIR", "target/static");
 }
 
-pub fn set_cc(target: &Triple) {
-    // When compiling crates that compile C code (e.g. alloca), we need to use our clang.
-    let clang_path = Path::new("toolchain/install/bin/clang")
-        .canonicalize()
-        .unwrap();
-    std::env::set_var("CC", &clang_path);
-    std::env::set_var("LD", &clang_path);
-    std::env::set_var("CXX", &clang_path);
-
-    // We don't have any real system-include files, but we can provide these extremely simple ones.
-    let sysroot_path = Path::new(&format!(
-        "toolchain/install/sysroots/{}",
-        target.to_string()
-    ))
-    .canonicalize()
-    .unwrap();
-    // We don't yet support stack protector. Also, don't pull in standard lib includes, as those may
-    // go to the system includes.
-    let cflags = format!(
-        "-fno-stack-protector -isysroot {} -target {} --sysroot {}",
-        sysroot_path.display(),
-        target.to_string(),
-        sysroot_path.display(),
-    );
-    std::env::set_var("CFLAGS", &cflags);
-    std::env::set_var("LDFLAGS", &cflags);
-    std::env::set_var("CXXFLAGS", &cflags);
-}
-
-pub fn clear_cc() {
-    std::env::remove_var("CC");
-    std::env::remove_var("CXX");
-    std::env::remove_var("LD");
-    std::env::remove_var("CC");
-    std::env::remove_var("CXXFLAGS");
-    std::env::remove_var("CFLAGS");
-    std::env::remove_var("LDFLAGS");
-}
-
-pub fn clear_rustflags() {
-    std::env::remove_var("RUSTFLAGS");
-    std::env::remove_var("CARGO_TARGET_DIR");
-}
-
 pub(crate) fn init_for_build(abi_changes_ok: bool) -> anyhow::Result<()> {
     if needs_reinstall()? && !abi_changes_ok {
         eprintln!("!! You'll need to recompile your toolchain. Running `cargo bootstrap` should resolve the issue.");
@@ -611,86 +502,6 @@ pub(crate) fn init_for_build(abi_changes_ok: bool) -> anyhow::Result<()> {
     Ok(())
 }
 
-fn get_lld_bin(host_triple: &str) -> anyhow::Result<PathBuf> {
-    let curdir = std::env::current_dir().unwrap();
-    let llvm_bin = curdir
-        .join("toolchain/src/rust/build")
-        .join(host_triple)
-        .join("lld/bin");
-    Ok(llvm_bin)
-}
-
-fn get_llvm_bin(host_triple: &str) -> anyhow::Result<PathBuf> {
-    let curdir = std::env::current_dir().unwrap();
-    let llvm_bin = curdir
-        .join("toolchain/src/rust/build")
-        .join(host_triple)
-        .join("llvm/bin");
-    Ok(llvm_bin)
-}
-
-fn get_rustlib_bin(host_triple: &str) -> anyhow::Result<PathBuf> {
-    let curdir = std::env::current_dir().unwrap();
-    let rustlib_bin = curdir
-        .join("toolchain/install/lib/rustlib")
-        .join(host_triple)
-        .join("bin");
-    Ok(rustlib_bin)
-}
-
-pub fn get_rustlib_lib(host_triple: &str) -> anyhow::Result<PathBuf> {
-    let curdir = std::env::current_dir().unwrap();
-    let rustlib_bin = curdir
-        .join("toolchain/install/lib/rustlib")
-        .join(host_triple)
-        .join("lib");
-    Ok(rustlib_bin)
-}
-
-pub fn get_rust_lld(host_triple: &str) -> anyhow::Result<PathBuf> {
-    let curdir = std::env::current_dir().unwrap();
-    let rustlib_bin = curdir
-        .join("toolchain/src/rust/build")
-        .join(host_triple)
-        .join("stage1/lib/rustlib")
-        .join(host_triple)
-        .join("bin/rust-lld");
-    Ok(rustlib_bin)
-}
-
-pub fn get_rust_stage2_std(host_triple: &str, target_triple: &str) -> anyhow::Result<PathBuf> {
-    let curdir = std::env::current_dir().unwrap();
-    let dir = curdir
-        .join("toolchain/src/rust/build")
-        .join(host_triple)
-        .join("stage2-std")
-        .join(target_triple)
-        .join("release");
-    Ok(dir)
-}
-
-pub fn get_llvm_native_runtime(target_triple: &str) -> anyhow::Result<PathBuf> {
-    let curdir = std::env::current_dir().unwrap();
-    let arch = target_triple.split("-").next().unwrap();
-    let archive_name = format!("libclang_rt.builtins-{}.a", arch);
-    let dir = curdir
-        .join("toolchain/src/rust/build")
-        .join(target_triple)
-        .join("native/sanitizers/build/lib/twizzler")
-        .join(archive_name);
-    Ok(dir)
-}
-
-pub fn get_llvm_native_runtime_install(target_triple: &str) -> anyhow::Result<PathBuf> {
-    let curdir = std::env::current_dir().unwrap();
-    let archive_name = "libclang_rt.builtins.a";
-    let dir = curdir
-        .join("toolchain/install/lib/clang/20/lib")
-        .join(target_triple)
-        .join(archive_name);
-    Ok(dir)
-}
-
 fn generate_config_toml() -> anyhow::Result<()> {
     /* We need to add two(ish) things to the config.toml for rustc: the paths of tools for each twizzler target (built by LLVM as part
     of rustc), and the host triple (added to the list of triples to support). */
@@ -701,7 +512,6 @@ fn generate_config_toml() -> anyhow::Result<()> {
         String::from("# This file was auto-generated by xtask. Do not edit directly.\n") + &buf;
     let mut toml = commented.parse::<DocumentMut>()?;
     let host_triple = guess_host_triple().unwrap();
-
     let llvm_bin = get_llvm_bin(host_triple)?;
     toml["build"]["target"]
         .as_array_mut()
