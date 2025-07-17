@@ -62,6 +62,7 @@ impl QemuCommand {
         if let Ok(f) = OpenOptions::new()
             .write(true)
             .create(true)
+            .truncate(true)
             .open("target/nvme.img")
         {
             f.set_len(1024 * 1024 * 1024 * 100).unwrap();
@@ -79,8 +80,8 @@ impl QemuCommand {
             "PATH",
             format!("{}:{}", std::env::var("PATH").unwrap(), "/usr/sbin/"),
         );
-        if !already_exists {
-            if !Command::new("mke2fs")
+        if !already_exists
+            && !Command::new("mke2fs")
                 .arg("-b")
                 .arg("4096")
                 .arg("-qF")
@@ -91,9 +92,8 @@ impl QemuCommand {
                 .status()
                 .expect("failed to create disk image")
                 .success()
-            {
-                panic!("failed to run mke2fs on nvme.img");
-            }
+        {
+            panic!("failed to run mke2fs on nvme.img");
         }
 
         self.cmd

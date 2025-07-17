@@ -1,8 +1,10 @@
 use std::{
     fs::{remove_dir_all, File},
     io::{Read, Write},
+    os::unix::process::CommandExt,
     path::{Path, PathBuf},
     process::Command,
+    sync::Arc,
     vec,
 };
 
@@ -13,6 +15,7 @@ use indicatif::{ProgressBar, ProgressStyle};
 use reqwest::Client;
 use toml_edit::DocumentMut;
 
+use super::get_toolchain_path;
 use crate::{
     triple::{all_possible_platforms, Triple},
     BootstrapOptions,
@@ -75,6 +78,27 @@ pub fn install_build_tools(_cli: &BootstrapOptions) -> anyhow::Result<()> {
         .status()?;
     if !status.success() {
         anyhow::bail!("failed to install meson and ninja");
+    }
+
+    Ok(())
+}
+
+pub fn prune_toolchain() -> anyhow::Result<()> {
+    let prune_path = format!("{}/prune.txt", get_toolchain_path()?);
+
+    let mut prune_f = File::open(&prune_path)
+        .with_context(|| format!("was not able to find prune file at path {}", &prune_path))?;
+
+    let mut to_prune = String::new();
+
+    prune_f.read_to_string(&mut to_prune)?;
+
+    for path in to_prune.lines() {
+        // A safety check to make sure that we only remove stuff inside toolchain as some
+        // destructive operations are ahead
+        assert!(path.to_owned().starts_with("./toolchain"));
+
+        let _ = Command::new("rm").args(["-rf", path]).spawn()?;
     }
 
     Ok(())
