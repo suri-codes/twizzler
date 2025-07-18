@@ -48,6 +48,12 @@ pub struct BootstrapOptions {
 
     #[clap(long, help = "Skips pruning the toolchain after building")]
     skip_prune: bool,
+
+    #[clap(
+        long,
+        help = "After bootstrapping, will compress and tag the toolchain for distribution."
+    )]
+    package: bool,
 }
 
 #[derive(Subcommand, Debug)]

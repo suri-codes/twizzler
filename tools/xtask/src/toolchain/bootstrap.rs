@@ -321,6 +321,10 @@ pub(crate) fn do_bootstrap(cli: BootstrapOptions) -> anyhow::Result<()> {
         }
     }
 
+    //TODO: prune here
+    //
+    // check if we we want to tag / compress it too!
+
     println!("ready!");
     Ok(())
 }
