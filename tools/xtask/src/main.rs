@@ -7,6 +7,7 @@ mod triple;
 use std::path::PathBuf;
 
 use clap::{Args, Parser, Subcommand, ValueEnum};
+use toolchain::ToolchainCommands;
 use triple::{Arch, Machine, Triple};
 
 #[derive(Parser, Debug)]
@@ -197,28 +198,10 @@ impl From<&QemuOptions> for ImageOptions {
     }
 }
 
-#[derive(clap::Args, Debug)]
-struct BootstrapOptions {
-    #[clap(long, help = "Skip downloading boot files from file server.")]
-    skip_downloads: bool,
-    #[clap(long, help = "Skip compiling the rust toolchain (not recommended...).")]
-    skip_rust: bool,
-    #[clap(
-        long,
-        help = "Don't remove the target/ directory after rebuilding the toolchain."
-    )]
-    keep_old_artifacts: bool,
-    #[clap(
-        long,
-        help = "Keep early stages (0 and 1) of building rustc. Speeds up compilation, but can only be used if you (a) have already done a full bootstrap, and (b) since that bootstrap, all that is modified is twizzler-runtime-api or rust's standard library. Any changes to the compiler require one to not use this flag."
-    )]
-    keep_early_stages: bool,
-}
-
 #[derive(Subcommand, Debug)]
 enum Commands {
-    #[clap(about = "Bootstrap the Twizzler Rust toolchain.")]
-    Bootstrap(BootstrapOptions),
+    #[clap(subcommand, about = "Bootstrap the Twizzler Rust toolchain.")]
+    Toolchain(ToolchainCommands),
     #[clap(about = "Run cargo check on the codebase.")]
     Check(CheckOptions),
     #[clap(about = "Build the Twizzler system.")]
@@ -236,7 +219,7 @@ fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
     if let Some(command) = cli.command {
         match command {
-            Commands::Bootstrap(x) => toolchain::do_bootstrap(x),
+            Commands::Toolchain(x) => toolchain::handle_cli(x),
             Commands::Check(x) => build::do_check(x),
             Commands::Build(x) => build::do_build(x).map(|_| ()),
             Commands::Doc(x) => build::do_docs(x).map(|_| ()),

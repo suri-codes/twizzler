@@ -10,16 +10,14 @@ use std::{
 
 use anyhow::Context;
 use fs_extra::dir::CopyOptions;
+use git2::{Oid, Repository, SubmoduleUpdate};
 use guess_host_triple::guess_host_triple;
 use indicatif::{ProgressBar, ProgressStyle};
 use reqwest::Client;
 use toml_edit::DocumentMut;
 
-use super::get_toolchain_path;
-use crate::{
-    triple::{all_possible_platforms, Triple},
-    BootstrapOptions,
-};
+use super::{get_toolchain_path, BootstrapOptions};
+use crate::triple::{all_possible_platforms, Triple};
 
 pub async fn download_file(client: &Client, url: &str, path: &str) -> anyhow::Result<()> {
     use futures_util::StreamExt;
@@ -84,9 +82,11 @@ pub fn install_build_tools(_cli: &BootstrapOptions) -> anyhow::Result<()> {
 }
 
 pub fn prune_toolchain() -> anyhow::Result<()> {
-    let prune_path = format!("{}/prune.txt", get_toolchain_path()?);
+    // let prune_path = format!("{}/prune.txt", get_toolchain_path()?);
+    //TODO: figure out how this is going to work with multiple toolchains
+    let prune_path = "toolchain/prune.txt";
 
-    let mut prune_f = File::open(&prune_path)
+    let mut prune_f = File::open(prune_path)
         .with_context(|| format!("was not able to find prune file at path {}", &prune_path))?;
 
     let mut to_prune = String::new();
@@ -102,4 +102,54 @@ pub fn prune_toolchain() -> anyhow::Result<()> {
     }
 
     Ok(())
+}
+
+// example tag for toolchain
+// toolchain_<x86|aarch64>_<linux|darwin>_<hash>.tar.zst
+pub fn generate_tag() -> anyhow::Result<String> {
+    let hash = generate_hash()?;
+
+    let arch = {
+        let output = Command::new("uname").arg("-m").output()?;
+        let stdout = String::from_utf8(output.stdout)?;
+        stdout.trim().to_owned()
+    };
+
+    let os = {
+        let output = Command::new("uname").output()?;
+        let stdout = String::from_utf8(output.stdout)?;
+        stdout.trim().to_owned()
+    };
+
+    Ok(format!("toolchain_{arch}_{os}_{hash}"))
+}
+
+fn generate_hash() -> anyhow::Result<String> {
+    let repo = Repository::open("./")?;
+
+    let submodules = repo.submodules()?;
+
+    let get_head = |submodule_path: &str| -> String {
+        let oid = submodules
+            .iter()
+            .find(|e| e.name().expect("submodulue should have a name") == submodule_path)
+            .unwrap_or_else(|| panic!("submodule not found at path: {}", submodule_path))
+            .head_id()
+            .expect("head should exist")
+            .to_string();
+
+        // truncate the oid to 7 characters, if its good enough for github, its good enough for us
+        let (head, _) = oid.split_at(7);
+        head.to_owned()
+    };
+
+    let rust_head = get_head("toolchain/src/rust");
+    let mlibc_head = get_head("toolchain/src/mlibc");
+    let abi_head = get_head("src/abi");
+
+    println!("rust: {}", rust_head);
+    println!("mlibc: {}", mlibc_head);
+    println!("abi: {}", abi_head);
+
+    Ok(format!("{rust_head}-{mlibc_head}-{abi_head}"))
 }

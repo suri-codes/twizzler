@@ -13,10 +13,7 @@ use indicatif::{ProgressBar, ProgressStyle};
 use reqwest::Client;
 use toml_edit::DocumentMut;
 
-use crate::{
-    triple::{all_possible_platforms, Triple},
-    BootstrapOptions,
-};
+use crate::triple::{all_possible_platforms, Triple};
 
 pub fn get_toolchain_path() -> anyhow::Result<String> {
     Ok("toolchain/install".to_string())
