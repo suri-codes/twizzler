@@ -81,7 +81,7 @@ pub fn handle_cli(subcommand: ToolchainCommands) -> anyhow::Result<()> {
             todo!("implement this later")
         }
         ToolchainCommands::Prune => prune_toolchain(),
-        ToolchainCommands::Test => Ok(println!("generated tag: {}", generate_tag()?)),
+        ToolchainCommands::Test => compress_toolchain(),
     }
 }
 
