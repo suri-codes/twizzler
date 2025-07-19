@@ -1,6 +1,7 @@
 use std::{
     fs::{remove_dir_all, File},
     io::{Read, Write},
+    os::unix::process::CommandExt,
     path::{Path, PathBuf},
     process::Command,
     vec,
@@ -23,8 +24,8 @@ use super::{
 };
 use crate::{
     toolchain::{
-        build_crtx, download_efi_files, generate_config_toml, get_abi_version, get_rust_commit,
-        move_stamp, write_stamp, NEXT_STAMP_PATH,
+        build_crtx, download_efi_files, generate_config_toml, generate_tag, get_abi_version,
+        get_rust_commit, move_stamp, prune_toolchain, write_stamp, NEXT_STAMP_PATH,
     },
     triple::{all_possible_platforms, Triple},
 };
@@ -321,9 +322,19 @@ pub(crate) fn do_bootstrap(cli: BootstrapOptions) -> anyhow::Result<()> {
         }
     }
 
-    //TODO: prune here
-    //
-    // check if we we want to tag / compress it too!
+    if !cli.skip_prune {
+        prune_toolchain()?;
+    }
+
+    if cli.compress {
+        let tag = generate_tag()?;
+
+        // when we build the toolchain we ideally move everything into install and then compress
+        // that no?
+        let _ = Command::new("tar")
+            .args(["--zstd", "-z", "-f", tag.as_str(), "toolchain"])
+            .spawn()?;
+    }
 
     println!("ready!");
     Ok(())

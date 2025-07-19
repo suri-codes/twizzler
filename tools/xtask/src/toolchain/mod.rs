@@ -54,11 +54,18 @@ pub struct BootstrapOptions {
         help = "After bootstrapping, will compress and tag the toolchain for distribution."
     )]
     package: bool,
+
+    #[clap(
+        long,
+        help = "Compresses the toolchain after bootstrapping for distribution"
+    )]
+    compress: bool,
 }
 
 #[derive(Subcommand, Debug)]
 pub enum ToolchainCommands {
     Bootstrap(BootstrapOptions),
+    /// Explicitly pull down the toolchain that corresponds with the current submodules
     Pull,
     //NOTE: Not sure if this should be an option or should be explicit or maybe even both
     /// Will look at the bootstrapped toolchain and prune if necessary
