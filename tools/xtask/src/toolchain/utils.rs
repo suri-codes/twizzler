@@ -133,7 +133,11 @@ pub fn generate_tag() -> anyhow::Result<String> {
         stdout.trim().to_owned()
     };
 
-    Ok(format!("toolchain_{arch}_{os}_{hash}"))
+    let tag = format!("toolchain_{arch}_{os}_{hash}");
+
+    println!("generated tag:{tag}");
+
+    Ok(tag)
 }
 
 fn generate_hash() -> anyhow::Result<String> {
@@ -159,9 +163,21 @@ fn generate_hash() -> anyhow::Result<String> {
     let mlibc_head = get_head("toolchain/src/mlibc");
     let abi_head = get_head("src/abi");
 
-    println!("rust: {}", rust_head);
-    println!("mlibc: {}", mlibc_head);
-    println!("abi: {}", abi_head);
-
     Ok(format!("{rust_head}-{mlibc_head}-{abi_head}"))
+}
+
+pub fn compress_toolchain() -> anyhow::Result<()> {
+    let tag = generate_tag()?;
+
+    // when we build the toolchain we ideally move everything into install and then compress
+    // that no?
+    let _ = Command::new("tar")
+        .arg("--zstd")
+        .arg("-c")
+        .arg("-f")
+        .arg([tag.as_str(), ".tar.zst"].concat())
+        .arg("toolchain")
+        .spawn()?;
+
+    Ok(())
 }
