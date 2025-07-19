@@ -23,6 +23,7 @@ use utils::{download_file, install_build_tools};
 use crate::triple::{all_possible_platforms, Triple};
 
 mod bootstrap;
+mod mover;
 mod pathfinding;
 mod utils;
 
@@ -81,7 +82,7 @@ pub fn handle_cli(subcommand: ToolchainCommands) -> anyhow::Result<()> {
             todo!("implement this later")
         }
         ToolchainCommands::Prune => prune_toolchain(),
-        ToolchainCommands::Test => Ok(println!("generated tag: {}", generate_tag()?)),
+        ToolchainCommands::Test => compress_toolchain(),
     }
 }
 

@@ -104,6 +104,18 @@ pub fn prune_toolchain() -> anyhow::Result<()> {
     Ok(())
 }
 
+pub fn compress_toolchain() -> anyhow::Result<()> {
+    let tag = generate_tag()?;
+
+    // when we build the toolchain we ideally move everything into install and then compress
+    // that no?
+    let _ = Command::new("tar")
+        .args(["--zstd", "-zf", tag.as_str(), "toolchain"])
+        .spawn()?;
+
+    Ok(())
+}
+
 // example tag for toolchain
 // toolchain_<x86|aarch64>_<linux|darwin>_<hash>.tar.zst
 pub fn generate_tag() -> anyhow::Result<String> {

@@ -76,6 +76,7 @@ pub fn clear_rustflags() {
 pub fn get_lld_bin(host_triple: &str) -> anyhow::Result<PathBuf> {
     let curdir = std::env::current_dir().unwrap();
     let llvm_bin = curdir
+        //TODO: move this into install
         .join("toolchain/src/rust/build")
         .join(host_triple)
         .join("lld/bin");
@@ -85,6 +86,7 @@ pub fn get_lld_bin(host_triple: &str) -> anyhow::Result<PathBuf> {
 pub fn get_llvm_bin(host_triple: &str) -> anyhow::Result<PathBuf> {
     let curdir = std::env::current_dir().unwrap();
     let llvm_bin = curdir
+        //TODO: move this into install
         .join("toolchain/src/rust/build")
         .join(host_triple)
         .join("llvm/bin");
@@ -112,6 +114,7 @@ pub fn get_rustlib_lib(host_triple: &str) -> anyhow::Result<PathBuf> {
 pub fn get_rust_lld(host_triple: &str) -> anyhow::Result<PathBuf> {
     let curdir = std::env::current_dir().unwrap();
     let rustlib_bin = curdir
+        //TODO: move this into install
         .join("toolchain/src/rust/build")
         .join(host_triple)
         .join("stage1/lib/rustlib")
@@ -122,12 +125,21 @@ pub fn get_rust_lld(host_triple: &str) -> anyhow::Result<PathBuf> {
 
 pub fn get_rust_stage2_std(host_triple: &str, target_triple: &str) -> anyhow::Result<PathBuf> {
     let curdir = std::env::current_dir().unwrap();
+
     let dir = curdir
-        .join("toolchain/src/rust/build")
+        .join("toolchain/install/rust/build")
         .join(host_triple)
         .join("stage2-std")
         .join(target_triple)
         .join("release");
+
+    // let dir = curdir
+    //     //TODO: move this into install
+    //     .join("toolchain/src/rust/build")
+    //     .join(host_triple)
+    //     .join("stage2-std")
+    //     .join(target_triple)
+    //     .join("release");
     Ok(dir)
 }
 
@@ -135,11 +147,18 @@ pub fn get_llvm_native_runtime(target_triple: &str) -> anyhow::Result<PathBuf> {
     let curdir = std::env::current_dir().unwrap();
     let arch = target_triple.split("-").next().unwrap();
     let archive_name = format!("libclang_rt.builtins-{}.a", arch);
+
     let dir = curdir
-        .join("toolchain/src/rust/build")
+        .join("toolchain/install/")
         .join(target_triple)
-        .join("native/sanitizers/build/lib/twizzler")
+        .join("native")
         .join(archive_name);
+
+    // let dir = curdir
+    //     .join("toolchain/src/rust/build")
+    //     .join(target_triple)
+    //     .join("native/sanitizers/build/lib/twizzler")
+    //     .join(archive_name);
     Ok(dir)
 }
 

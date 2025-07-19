@@ -25,7 +25,8 @@ use super::{
 use crate::{
     toolchain::{
         build_crtx, download_efi_files, generate_config_toml, generate_tag, get_abi_version,
-        get_rust_commit, move_stamp, prune_toolchain, write_stamp, NEXT_STAMP_PATH,
+        get_rust_commit, move_stamp, mover::move_all, prune_toolchain, write_stamp,
+        NEXT_STAMP_PATH,
     },
     triple::{all_possible_platforms, Triple},
 };
@@ -324,6 +325,8 @@ pub(crate) fn do_bootstrap(cli: BootstrapOptions) -> anyhow::Result<()> {
 
     if !cli.skip_prune {
         prune_toolchain()?;
+        // move_all(host_triple, target_triple)
+        // move in here
     }
 
     if cli.compress {
@@ -332,7 +335,7 @@ pub(crate) fn do_bootstrap(cli: BootstrapOptions) -> anyhow::Result<()> {
         // when we build the toolchain we ideally move everything into install and then compress
         // that no?
         let _ = Command::new("tar")
-            .args(["--zstd", "-z", "-f", tag.as_str(), "toolchain"])
+            .args(["--zstd", "-zf", tag.as_str(), "toolchain"])
             .spawn()?;
     }
 
