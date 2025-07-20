@@ -1,5 +1,7 @@
 use std::{path::PathBuf, process::Command};
 
+use cargo::try_old_curl_http2_pipewait;
+
 use super::pathfinding;
 
 pub fn move_all(host_triple: &str, target_triple: &str) -> anyhow::Result<()> {
@@ -30,7 +32,20 @@ pub fn move_all(host_triple: &str, target_triple: &str) -> anyhow::Result<()> {
     let new_rust_stage_2 = pathfinding::get_llvm_native_runtime_install(target_triple)?;
     move_dir(old_rust_stage_2, new_rust_stage_2)?;
 
-    
+    // rust lld
+    let old_rust_lld = get_rust_lld(host_triple)?;
+    let new_rust_lld = pathfinding::get_rust_lld(host_triple)?;
+    move_dir(old_rust_lld, new_rust_lld)?;
+
+    // llvm bin
+    let old_llvm_bin = get_llvm_bin(host_triple)?;
+    let new_llvm_bin = pathfinding::get_llvm_bin(host_triple)?;
+    move_dir(old_llvm_bin, new_llvm_bin)?;
+
+    // lld bin
+    let old_lld_bin = get_lld_bin(host_triple)?;
+    let new_lld_bin = pathfinding::get_lld_bin(host_triple)?;
+    move_dir(old_lld_bin, new_lld_bin)?;
 
     Ok(())
 }
