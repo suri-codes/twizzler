@@ -82,7 +82,7 @@ pub fn handle_cli(subcommand: ToolchainCommands) -> anyhow::Result<()> {
             todo!("implement this later")
         }
         ToolchainCommands::Prune => prune_toolchain(),
-        ToolchainCommands::Test => compress,
+        ToolchainCommands::Test => Ok(()),
     }
 }
 
