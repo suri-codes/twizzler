@@ -1,6 +1,8 @@
 use std::path::{Path, PathBuf};
+
 use crate::triple::Triple;
 
+//TODO: this should return the canonicalized path to the toolchain!
 pub fn get_toolchain_path() -> anyhow::Result<String> {
     Ok("toolchain/install".to_string())
 }
@@ -15,9 +17,11 @@ pub fn get_rustdoc_path() -> anyhow::Result<String> {
     Ok(format!("{}/bin/rustdoc", toolchain))
 }
 
-pub fn set_cc(target: &Triple) {
+pub fn set_cc(target: &Triple) -> anyhow::Result<()> {
+    let toolchain_path = get_toolchain_path()?;
+
     // When compiling crates that compile C code (e.g. alloca), we need to use our clang.
-    let clang_path = Path::new("toolchain/install/bin/clang")
+    let clang_path = Path::new(format!("{}/bin/clang", toolchain_path).as_str())
         .canonicalize()
         .unwrap();
     std::env::set_var("CC", &clang_path);
@@ -26,7 +30,8 @@ pub fn set_cc(target: &Triple) {
 
     // We don't have any real system-include files, but we can provide these extremely simple ones.
     let sysroot_path = Path::new(&format!(
-        "toolchain/install/sysroots/{}",
+        "{}/sysroots/{}",
+        toolchain_path,
         target.to_string()
     ))
     .canonicalize()
@@ -42,6 +47,8 @@ pub fn set_cc(target: &Triple) {
     std::env::set_var("CFLAGS", &cflags);
     std::env::set_var("LDFLAGS", &cflags);
     std::env::set_var("CXXFLAGS", &cflags);
+
+    Ok(())
 }
 
 pub fn clear_cc() {
@@ -60,28 +67,23 @@ pub fn clear_rustflags() {
 }
 
 pub fn get_lld_bin(host_triple: &str) -> anyhow::Result<PathBuf> {
-    let curdir = std::env::current_dir().unwrap();
-    let llvm_bin = curdir
-        //TODO: move this into install
-        .join("toolchain/install/rust/build")
+    let llvm_bin = PathBuf::from(get_toolchain_path()?)
+        .join("rust/build")
         .join(host_triple)
         .join("lld/bin");
     Ok(llvm_bin)
 }
 
 pub fn get_llvm_bin(host_triple: &str) -> anyhow::Result<PathBuf> {
-    let curdir = std::env::current_dir().unwrap();
-    let llvm_bin = curdir
-        //TODO: move this into install
-        .join("toolchain/install/rust/build")
+    let llvm_bin = PathBuf::from(get_toolchain_path()?)
+        .join("rust/build")
         .join(host_triple)
         .join("llvm/bin");
     Ok(llvm_bin)
 }
 
 pub fn get_rustlib_bin(host_triple: &str) -> anyhow::Result<PathBuf> {
-    let curdir = std::env::current_dir().unwrap();
-    let rustlib_bin = curdir
+    let rustlib_bin = PathBuf::from(get_toolchain_path()?)
         .join("toolchain/install/lib/rustlib")
         .join(host_triple)
         .join("bin");
@@ -89,19 +91,16 @@ pub fn get_rustlib_bin(host_triple: &str) -> anyhow::Result<PathBuf> {
 }
 
 pub fn get_rustlib_lib(host_triple: &str) -> anyhow::Result<PathBuf> {
-    let curdir = std::env::current_dir().unwrap();
-    let rustlib_bin = curdir
-        .join("toolchain/install/lib/rustlib")
+    let rustlib_bin = PathBuf::from(get_toolchain_path()?)
+        .join("lib/rustlib")
         .join(host_triple)
         .join("lib");
     Ok(rustlib_bin)
 }
 
 pub fn get_rust_lld(host_triple: &str) -> anyhow::Result<PathBuf> {
-    let curdir = std::env::current_dir().unwrap();
-    let rustlib_bin = curdir
-        //TODO: move this into install
-        .join("toolchain/install/rust/build")
+    let rustlib_bin = PathBuf::from(get_toolchain_path()?)
+        .join("rust/build")
         .join(host_triple)
         .join("stage1/lib/rustlib")
         .join(host_triple)
@@ -110,38 +109,22 @@ pub fn get_rust_lld(host_triple: &str) -> anyhow::Result<PathBuf> {
 }
 
 pub fn get_rust_stage2_std(host_triple: &str, target_triple: &str) -> anyhow::Result<PathBuf> {
-    let curdir = std::env::current_dir().unwrap();
-
-    let dir = curdir
-        .join("toolchain/install/rust/build")
+    let dir = PathBuf::from(get_toolchain_path()?)
+        .join("rust/build")
         .join(host_triple)
         .join("stage2-std")
         .join(target_triple)
         .join("release");
 
-    // let dir = curdir
-    //     //TODO: move this into install
-    //     .join("toolchain/src/rust/build")
-    //     .join(host_triple)
-    //     .join("stage2-std")
-    //     .join(target_triple)
-    //     .join("release");
     Ok(dir)
 }
 
 pub fn get_llvm_native_runtime(target_triple: &str) -> anyhow::Result<PathBuf> {
-    let curdir = std::env::current_dir().unwrap();
     let arch = target_triple.split("-").next().unwrap();
     let archive_name = format!("libclang_rt.builtins-{}.a", arch);
 
-    // let dir = curdir
-    //     .join("toolchain/install/")
-    //     .join(target_triple)
-    //     .join("native")
-    //     .join(archive_name);
-
-    let dir = curdir
-        .join("toolchain/install/rust/build")
+    let dir = PathBuf::from(get_toolchain_path()?)
+        .join("rust/build")
         .join(target_triple)
         .join("native/sanitizers/build/lib/twizzler")
         .join(archive_name);
@@ -149,10 +132,9 @@ pub fn get_llvm_native_runtime(target_triple: &str) -> anyhow::Result<PathBuf> {
 }
 
 pub fn get_llvm_native_runtime_install(target_triple: &str) -> anyhow::Result<PathBuf> {
-    let curdir = std::env::current_dir().unwrap();
     let archive_name = "libclang_rt.builtins.a";
-    let dir = curdir
-        .join("toolchain/install/lib/clang/20/lib")
+    let dir = PathBuf::from(get_toolchain_path()?)
+        .join("lib/clang/20/lib")
         .join(target_triple)
         .join(archive_name);
     Ok(dir)

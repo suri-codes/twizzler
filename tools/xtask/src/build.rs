@@ -28,7 +28,7 @@ use crate::{
     BuildOptions, CheckOptions, DocOptions, Profile,
 };
 
-fn locate_packages<'a>(workspace: &'a Workspace, kind: Option<&str>) -> Vec<Package> {
+fn locate_packages(workspace: &Workspace, kind: Option<&str>) -> Vec<Package> {
     workspace
         .members()
         .filter(|p| {
@@ -95,7 +95,7 @@ fn build_third_party<'a>(
         return Ok(vec![]);
     }
     crate::toolchain::set_static();
-    crate::toolchain::set_cc(&build_config.twz_triple());
+    crate::toolchain::set_cc(&build_config.twz_triple())?;
     let config = user_workspace.gctx();
     let smap = SourceConfigMap::new(config)?;
     let mut registry = PackageRegistry::new_with_source_config(config, smap)?;
@@ -190,7 +190,7 @@ fn build_static<'a>(
         return Ok(None);
     }
     crate::toolchain::set_static();
-    crate::toolchain::set_cc(&build_config.twz_triple());
+    crate::toolchain::set_cc(&build_config.twz_triple())?;
     crate::print_status_line("collection: userspace-static", Some(build_config));
     // the currently supported build target triples
     // have a value of "unknown" for the machine, but
@@ -225,7 +225,7 @@ fn build_twizzler<'a>(
         return Ok(None);
     }
     crate::toolchain::set_dynamic(&build_config.twz_triple());
-    crate::toolchain::set_cc(&build_config.twz_triple());
+    crate::toolchain::set_cc(&build_config.twz_triple())?;
     crate::print_status_line("collection: userspace", Some(build_config));
     // let triple =  build_config.twz_triple();
     // the currently supported build target triples
@@ -262,7 +262,7 @@ fn maybe_build_tests_dynamic<'a>(
         return Ok(None);
     }
     crate::toolchain::set_dynamic(&build_config.twz_triple());
-    crate::toolchain::set_cc(&build_config.twz_triple());
+    crate::toolchain::set_cc(&build_config.twz_triple())?;
     crate::print_status_line("collection: userspace::tests", Some(build_config));
     let triple = Triple::new(
         build_config.arch,
@@ -460,14 +460,14 @@ impl TwizzlerCompilation {
                 .as_ref()
                 .expect("failed to get kernel test compilation when tests requested")
                 .tests
-                .get(0)
+                .first()
                 .unwrap()
                 .path
         } else {
             &self
                 .borrow_kernel_compilation()
                 .binaries
-                .get(0)
+                .first()
                 .unwrap()
                 .path
         }
@@ -496,7 +496,7 @@ fn compile(
     let mut tools_config = GlobalContext::default()?;
     tools_config.configure(0, false, None, false, false, false, &None, &[], &[])?;
 
-    crate::toolchain::set_cc(&bc.twz_triple());
+    crate::toolchain::set_cc(&bc.twz_triple())?;
     crate::toolchain::set_dynamic(&bc.twz_triple());
 
     let mut config = GlobalContext::default()?;
