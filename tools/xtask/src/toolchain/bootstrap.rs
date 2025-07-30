@@ -327,15 +327,14 @@ pub(crate) fn do_bootstrap(cli: BootstrapOptions) -> anyhow::Result<()> {
             }
         }
     }
+    let host_triple = guess_host_triple().unwrap();
+
+    for target_triple in all_possible_platforms() {
+        move_all(host_triple, &target_triple.to_string())?;
+    }
 
     if !cli.skip_prune {
         prune_toolchain()?;
-
-        let host_triple = guess_host_triple().unwrap();
-
-        for target_triple in all_possible_platforms() {
-            move_all(host_triple, &target_triple.to_string())?;
-        }
     }
 
     if cli.compress {
