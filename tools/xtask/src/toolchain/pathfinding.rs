@@ -148,17 +148,17 @@ pub fn get_llvm_native_runtime(target_triple: &str) -> anyhow::Result<PathBuf> {
     let arch = target_triple.split("-").next().unwrap();
     let archive_name = format!("libclang_rt.builtins-{}.a", arch);
 
-    let dir = curdir
-        .join("toolchain/install/")
-        .join(target_triple)
-        .join("native")
-        .join(archive_name);
-
     // let dir = curdir
-    //     .join("toolchain/src/rust/build")
+    //     .join("toolchain/install/")
     //     .join(target_triple)
-    //     .join("native/sanitizers/build/lib/twizzler")
+    //     .join("native")
     //     .join(archive_name);
+
+    let dir = curdir
+        .join("toolchain/src/rust/build")
+        .join(target_triple)
+        .join("native/sanitizers/build/lib/twizzler")
+        .join(archive_name);
     Ok(dir)
 }
 

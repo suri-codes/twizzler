@@ -215,6 +215,11 @@ pub(crate) fn do_bootstrap(cli: BootstrapOptions) -> anyhow::Result<()> {
         let _ =
             std::fs::create_dir_all(get_llvm_native_runtime_install(&target)?.parent().unwrap());
 
+        println!(
+            "copying {}",
+            get_llvm_native_runtime(&target)?.to_str().unwrap()
+        );
+
         std::fs::copy(
             get_llvm_native_runtime(&target)?,
             get_llvm_native_runtime_install(&target)?,
