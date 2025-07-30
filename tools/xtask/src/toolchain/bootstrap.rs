@@ -327,6 +327,7 @@ pub(crate) fn do_bootstrap(cli: BootstrapOptions) -> anyhow::Result<()> {
             }
         }
     }
+
     let host_triple = guess_host_triple().unwrap();
 
     for target_triple in all_possible_platforms() {

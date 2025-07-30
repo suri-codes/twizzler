@@ -1,7 +1,5 @@
 use std::{path::PathBuf, process::Command};
 
-use cargo::try_old_curl_http2_pipewait;
-
 use super::pathfinding;
 
 pub fn move_all(host_triple: &str, target_triple: &str) -> anyhow::Result<()> {
@@ -10,7 +8,7 @@ pub fn move_all(host_triple: &str, target_triple: &str) -> anyhow::Result<()> {
         .join("./toolchain/install/");
 
     let move_dir = |prev: PathBuf, next: PathBuf| -> anyhow::Result<()> {
-        let _ = Command::new("mv")
+        let _ = Command::new("cp -r")
             .arg(prev.to_str().unwrap())
             .arg(next.to_str().unwrap())
             .spawn()?;
@@ -77,7 +75,6 @@ fn get_llvm_native_runtime(target_triple: &str) -> anyhow::Result<PathBuf> {
 fn get_rust_lld(host_triple: &str) -> anyhow::Result<PathBuf> {
     let curdir = std::env::current_dir().unwrap();
     let rustlib_bin = curdir
-        //TODO: move this into install
         .join("toolchain/src/rust/build")
         .join(host_triple)
         .join("stage1/lib/rustlib")

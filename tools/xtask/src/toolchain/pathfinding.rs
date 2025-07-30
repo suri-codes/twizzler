@@ -1,19 +1,5 @@
-use std::{
-    fs::{remove_dir_all, File},
-    io::{Read, Write},
-    path::{Path, PathBuf},
-    process::Command,
-    vec,
-};
-
-use anyhow::Context;
-use fs_extra::dir::CopyOptions;
-use guess_host_triple::guess_host_triple;
-use indicatif::{ProgressBar, ProgressStyle};
-use reqwest::Client;
-use toml_edit::DocumentMut;
-
-use crate::triple::{all_possible_platforms, Triple};
+use std::path::{Path, PathBuf};
+use crate::triple::Triple;
 
 pub fn get_toolchain_path() -> anyhow::Result<String> {
     Ok("toolchain/install".to_string())
@@ -77,7 +63,7 @@ pub fn get_lld_bin(host_triple: &str) -> anyhow::Result<PathBuf> {
     let curdir = std::env::current_dir().unwrap();
     let llvm_bin = curdir
         //TODO: move this into install
-        .join("toolchain/src/rust/build")
+        .join("toolchain/install/rust/build")
         .join(host_triple)
         .join("lld/bin");
     Ok(llvm_bin)
@@ -87,7 +73,7 @@ pub fn get_llvm_bin(host_triple: &str) -> anyhow::Result<PathBuf> {
     let curdir = std::env::current_dir().unwrap();
     let llvm_bin = curdir
         //TODO: move this into install
-        .join("toolchain/src/rust/build")
+        .join("toolchain/install/rust/build")
         .join(host_triple)
         .join("llvm/bin");
     Ok(llvm_bin)
@@ -115,7 +101,7 @@ pub fn get_rust_lld(host_triple: &str) -> anyhow::Result<PathBuf> {
     let curdir = std::env::current_dir().unwrap();
     let rustlib_bin = curdir
         //TODO: move this into install
-        .join("toolchain/src/rust/build")
+        .join("toolchain/install/rust/build")
         .join(host_triple)
         .join("stage1/lib/rustlib")
         .join(host_triple)
@@ -155,7 +141,7 @@ pub fn get_llvm_native_runtime(target_triple: &str) -> anyhow::Result<PathBuf> {
     //     .join(archive_name);
 
     let dir = curdir
-        .join("toolchain/src/rust/build")
+        .join("toolchain/install/rust/build")
         .join(target_triple)
         .join("native/sanitizers/build/lib/twizzler")
         .join(archive_name);
