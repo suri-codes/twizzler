@@ -156,7 +156,7 @@ pub fn compress_toolchain() -> anyhow::Result<()> {
         .arg("-c")
         .arg("-f")
         .arg([tag.as_str(), ".tar.zst"].concat())
-        .arg("toolchain")
+        .arg("toolchain/install")
         .spawn()?;
 
     Ok(())
