@@ -19,6 +19,11 @@ pub fn get_rustdoc_path() -> anyhow::Result<String> {
     Ok(format!("{}/bin/rustdoc", toolchain))
 }
 
+pub fn get_bin_path() -> anyhow::Result<String> {
+    let toolchain = get_toolchain_path()?;
+    Ok(format!("{}/bin", toolchain))
+}
+
 pub fn set_cc(target: &Triple) -> anyhow::Result<()> {
     let toolchain_path = get_toolchain_path()?;
 

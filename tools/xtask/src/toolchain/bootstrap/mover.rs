@@ -45,9 +45,9 @@ pub fn move_all(host_triple: &str, target_triple: &str) -> anyhow::Result<()> {
     move_dir(old_rust_lld, new_rust_lld)?;
 
     // llvm bin
-    let old_llvm_bin = bootstrap::get_llvm_bin(host_triple)?;
-    let new_llvm_bin = pathfinding::get_llvm_bin(host_triple)?;
-    move_dir(old_llvm_bin, new_llvm_bin)?;
+    // let old_llvm_bin = bootstrap::get_llvm_bin(host_triple)?;
+    // let new_llvm_bin = pathfinding::get_llvm_bin(host_triple)?;
+    // move_dir(old_llvm_bin, new_llvm_bin)?;
 
     // lld bin
     let old_lld_bin = bootstrap::get_lld_bin(host_triple)?;
