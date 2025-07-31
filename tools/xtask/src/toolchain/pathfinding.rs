@@ -4,7 +4,9 @@ use crate::triple::Triple;
 
 //TODO: this should return the canonicalized path to the toolchain!
 pub fn get_toolchain_path() -> anyhow::Result<String> {
-    Ok("toolchain/install".to_string())
+    let mut curr_dir = std::env::current_dir()?;
+    curr_dir.push("toolchain/install");
+    Ok(curr_dir.to_str().unwrap().to_owned())
 }
 
 pub fn get_rustc_path() -> anyhow::Result<String> {
