@@ -9,6 +9,7 @@ pub fn move_all(host_triple: &str, target_triple: &str) -> anyhow::Result<()> {
     //     .join("./toolchain/install/");
 
     let move_dir = |prev: PathBuf, next: PathBuf| -> anyhow::Result<()> {
+        println!("moving {} to {}", prev.to_str().unwrap(), next.to_str().unwrap());
         let _ = Command::new("cp -r")
             .arg(prev.to_str().unwrap())
             .arg(next.to_str().unwrap())
