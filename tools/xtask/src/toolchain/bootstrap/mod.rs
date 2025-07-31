@@ -14,7 +14,7 @@ use super::{utils::install_build_tools, BootstrapOptions};
 use crate::{
     toolchain::{
         build_crtx, compress_toolchain, download_efi_files, get_abi_version, get_rust_commit,
-        move_stamp, prune_toolchain, write_stamp, NEXT_STAMP_PATH,
+        move_stamp, prune_bins, prune_toolchain, write_stamp, NEXT_STAMP_PATH,
     },
     triple::all_possible_platforms,
 };
@@ -329,6 +329,8 @@ pub(crate) fn do_bootstrap(cli: BootstrapOptions) -> anyhow::Result<()> {
     if !cli.skip_prune {
         prune_toolchain()?;
     }
+
+    prune_bins()?;
 
     if cli.compress {
         compress_toolchain()?;

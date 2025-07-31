@@ -1,5 +1,5 @@
 use std::{
-    fs::File,
+    fs::{self, File},
     io::{Read, Write},
     process::Command,
 };
@@ -9,7 +9,7 @@ use git2::Repository;
 use indicatif::{ProgressBar, ProgressStyle};
 use reqwest::Client;
 
-use super::BootstrapOptions;
+use super::{get_bin_path, BootstrapOptions};
 
 pub async fn download_file(client: &Client, url: &str, path: &str) -> anyhow::Result<()> {
     use futures_util::StreamExt;
@@ -68,6 +68,36 @@ pub fn install_build_tools(_cli: &BootstrapOptions) -> anyhow::Result<()> {
         .status()?;
     if !status.success() {
         anyhow::bail!("failed to install meson and ninja");
+    }
+
+    Ok(())
+}
+
+pub fn prune_bins() -> anyhow::Result<()> {
+    let wanted_bins = [
+        "bindgen",
+        "clang",
+        "clang++",
+        "rust-gdb",
+        "rust-gdbgui",
+        "rust-lldb",
+        "rustc",
+        "rustdoc",
+        "set-xcode-analyzer",
+    ];
+
+    // let mut file_names = Vec::new();
+    let bin_path = get_bin_path()?;
+    for entry in fs::read_dir(&bin_path)? {
+        let entry = entry?;
+        if let Some(name) = entry.file_name().to_str() {
+            if !wanted_bins.contains(&name) {
+                // we delete
+                Command::new("rm")
+                    .arg(format!("{}/{}", &bin_path, name))
+                    .status()?;
+            }
+        }
     }
 
     Ok(())
