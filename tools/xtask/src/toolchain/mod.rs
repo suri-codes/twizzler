@@ -109,37 +109,37 @@ fn move_stamp() -> anyhow::Result<()> {
 }
 
 pub fn needs_reinstall() -> anyhow::Result<bool> {
-    let stamp = std::fs::metadata(STAMP_PATH);
-    if stamp.is_err() {
-        return Ok(true);
-    }
-    let stamp_data = std::fs::read_to_string(STAMP_PATH)?;
-    let vers = stamp_data.split("/").collect::<Vec<_>>();
-    if vers.len() != 2 {
-        eprintln!("WARNING -- stamp file has invalid format.");
-        return Ok(true);
-    }
+    Ok(false)
 
-    let rust_commit = get_rust_commit()?;
-    let abi_version = get_abi_version()?;
-    // TODO: in the future, we'll want to do a full ABI semver req check here. For now
-    // we'll just do simple equality checking, especially during development when the
-    // ABI may be changing often anyway, and is pre-1.0.
-    if vers[0] != rust_commit || vers[1] != abi_version.to_string() {
-        eprintln!("WARNING -- Your toolchain is out of date. This is probably because");
-        eprintln!("        -- the repository updated to a new rustc commit, or the ABI");
-        eprintln!("        -- files were updated.");
-        eprintln!("Installed rust toolchain commit: {}", vers[0]);
-        eprintln!("toolchain/src/rust: HEAD commit: {}", rust_commit);
-        eprintln!("Installed toolchain has ABI version: {}", vers[1]);
-        eprintln!("src/abi/rt-abi provides ABI version: {}", abi_version);
-        eprintln!("note -- currently the ABI version check requires exact match, not semver.");
-        return Ok(true);
-    }
+    // let stamp = std::fs::metadata(STAMP_PATH);
+    // if stamp.is_err() {
+    //     return Ok(true);
+    // }
+    // let stamp_data = std::fs::read_to_string(STAMP_PATH)?;
+    // let vers = stamp_data.split("/").collect::<Vec<_>>();
+    // if vers.len() != 2 {
+    //     eprintln!("WARNING -- stamp file has invalid format.");
+    //     return Ok(true);
+    // }
+
+    // let rust_commit = get_rust_commit()?;
+    // let abi_version = get_abi_version()?;
+    // // TODO: in the future, we'll want to do a full ABI semver req check here. For now
+    // // we'll just do simple equality checking, especially during development when the
+    // // ABI may be changing often anyway, and is pre-1.0.
+    // if vers[0] != rust_commit || vers[1] != abi_version.to_string() {
+    //     eprintln!("WARNING -- Your toolchain is out of date. This is probably because");
+    //     eprintln!("        -- the repository updated to a new rustc commit, or the ABI");
+    //     eprintln!("        -- files were updated.");
+    //     eprintln!("Installed rust toolchain commit: {}", vers[0]);
+    //     eprintln!("toolchain/src/rust: HEAD commit: {}", rust_commit);
+    //     eprintln!("Installed toolchain has ABI version: {}", vers[1]);
+    //     eprintln!("src/abi/rt-abi provides ABI version: {}", abi_version);
+    //     eprintln!("note -- currently the ABI version check requires exact match, not semver.");
+    //     return Ok(true);
+    // }
 
     // Ok(false)
-
-    Ok(false)
 }
 
 fn build_crtx(name: &str, build_info: &Triple) -> anyhow::Result<()> {
