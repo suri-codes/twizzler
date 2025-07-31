@@ -73,6 +73,7 @@ pub fn get_compiler_rt_path() -> anyhow::Result<PathBuf> {
 }
 
 pub fn get_builtin_headers() -> anyhow::Result<PathBuf> {
+    //TODO: maybe we should throw up a warning to ask the user to switch to the proper directory?
     let curdir = std::env::current_dir().unwrap();
     let headers = curdir.join("toolchain/src/rust/build/host/llvm/lib/clang/20/include/");
 
