@@ -8,12 +8,32 @@ pub fn move_all(host_triple: &str, target_triple: &str) -> anyhow::Result<()> {
     //     .unwrap()
     //     .join("./toolchain/install/");
 
+    // let move_dir = |prev: PathBuf, next: PathBuf| -> anyhow::Result<()> {
+    //     println!("moving {} to {}", prev.to_str().unwrap(), next.to_str().unwrap());
+    //     let _ = Command::new("cp -r")
+    //         .arg(prev.to_str().unwrap())
+    //         .arg(next.to_str().unwrap())
+    //         .spawn()?;
+    //     Ok(())
+    // };
+
     let move_dir = |prev: PathBuf, next: PathBuf| -> anyhow::Result<()> {
-        println!("moving {} to {}", prev.to_str().unwrap(), next.to_str().unwrap());
-        let _ = Command::new("cp -r")
-            .arg(prev.to_str().unwrap())
-            .arg(next.to_str().unwrap())
-            .spawn()?;
+        println!("moving {} to {}", prev.display(), next.display());
+
+        if let Some(parent) = next.parent() {
+            std::fs::create_dir_all(parent)?;
+        }
+
+        let status = Command::new("cp")
+            .arg("-r")
+            .arg(&prev)
+            .arg(&next)
+            .status()?; // Use status() instead of spawn() to wait for completion
+
+        if !status.success() {
+            anyhow::bail!("cp command failed with status: {}", status);
+        }
+
         Ok(())
     };
 
