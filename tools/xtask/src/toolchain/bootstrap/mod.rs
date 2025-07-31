@@ -1,35 +1,27 @@
 use std::{
     fs::{remove_dir_all, File},
-    io::{Read, Write},
-    os::unix::process::CommandExt,
-    path::{Path, PathBuf},
+    io::Write,
     process::Command,
     vec,
 };
 
-use anyhow::Context;
 use fs_extra::dir::CopyOptions;
 use guess_host_triple::guess_host_triple;
-use indicatif::{ProgressBar, ProgressStyle};
 use reqwest::Client;
-use toml_edit::DocumentMut;
 
-use super::{
-    pathfinding::{
-        get_lld_bin, get_llvm_bin, get_llvm_native_runtime, get_llvm_native_runtime_install,
-        get_rust_lld, get_rustc_path, get_rustdoc_path, get_rustlib_bin,
-    },
-    utils::{download_file, install_build_tools},
-    BootstrapOptions,
-};
+use super::{utils::install_build_tools, BootstrapOptions};
 use crate::{
     toolchain::{
-        build_crtx, compress_toolchain, download_efi_files, generate_config_toml, generate_tag,
-        get_abi_version, get_rust_commit, move_stamp, mover::move_all, prune_toolchain,
-        write_stamp, NEXT_STAMP_PATH,
+        build_crtx, compress_toolchain, download_efi_files, generate_config_toml, get_abi_version,
+        get_rust_commit, move_stamp, mover::move_all, prune_toolchain, write_stamp,
+        NEXT_STAMP_PATH,
     },
-    triple::{all_possible_platforms, Triple},
+    triple::all_possible_platforms,
 };
+
+mod paths;
+use paths::*;
+mod mover;
 
 pub(crate) fn do_bootstrap(cli: BootstrapOptions) -> anyhow::Result<()> {
     fs_extra::dir::create_all("toolchain/install", false)?;
@@ -331,7 +323,7 @@ pub(crate) fn do_bootstrap(cli: BootstrapOptions) -> anyhow::Result<()> {
     let host_triple = guess_host_triple().unwrap();
 
     for target_triple in all_possible_platforms() {
-        move_all(host_triple, &target_triple.to_string())?;
+        mover::move_all(host_triple, &target_triple.to_string())?;
     }
 
     if !cli.skip_prune {
