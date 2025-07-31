@@ -236,10 +236,10 @@ pub(crate) fn init_for_build(abi_changes_ok: bool) -> anyhow::Result<()> {
     std::env::set_var("CARGO_CACHE_RUSTC_INFO", "0");
     let current_dir = std::env::current_dir().unwrap();
     std::env::set_var("PYTHONPATH", current_dir.join("toolchain/install/python"));
-    std::env::set_var(
-        "TWIZZLER_ABI_BUILTIN_HEADERS",
-        "toolchain/install/lib/clang/20/include/",
-    );
+
+    let builtin_headers = get_builtin_headers()?.canonicalize()?;
+
+    std::env::set_var("TWIZZLER_ABI_BUILTIN_HEADERS", builtin_headers);
 
     let var = std::env::var("TWIZZLER_ABI_BUILTIN_HEADERS").unwrap();
 
