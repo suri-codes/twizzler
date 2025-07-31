@@ -241,6 +241,11 @@ pub(crate) fn init_for_build(abi_changes_ok: bool) -> anyhow::Result<()> {
         "toolchain/install/lib/clang/20/include/",
     );
 
+    let _ = std::env::var("TWIZZLER_ABI_BUILTIN_HEADERS").unwrap();
+
+
+    
+
     //TODO: MOVE COMPILER RT PATH
     // let compiler_rt_path = "toolchain/src/rust/src/llvm-project/compiler-rt";
     let compiler_rt_path = get_compiler_rt_path()?;
