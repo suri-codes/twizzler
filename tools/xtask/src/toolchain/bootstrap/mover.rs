@@ -36,7 +36,7 @@ pub fn move_all(host_triple: &str, target_triple: &str) -> anyhow::Result<()> {
 
     // rust stage2 std
     let old_rust_stage_2 = bootstrap::get_rust_stage2_std(host_triple, target_triple)?;
-    let new_rust_stage_2 = pathfinding::get_rust_stage2_std(target_triple)?;
+    let new_rust_stage_2 = pathfinding::get_rust_stage2_std(host_triple, target_triple)?;
     move_dir(old_rust_stage_2, new_rust_stage_2)?;
 
     // rust lld
