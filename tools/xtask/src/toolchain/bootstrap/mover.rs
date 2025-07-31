@@ -7,6 +7,11 @@ pub fn move_all(host_triple: &str, target_triple: &str) -> anyhow::Result<()> {
     let move_dir = |prev: PathBuf, next: PathBuf| -> anyhow::Result<()> {
         println!("moving {} to {}", prev.display(), next.display());
 
+        // Remove destination if it exists
+        if next.exists() {
+            std::fs::remove_dir_all(&next)?;
+        }
+
         if let Some(parent) = next.parent() {
             std::fs::create_dir_all(parent)?;
         }
