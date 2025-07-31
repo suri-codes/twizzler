@@ -137,7 +137,9 @@ pub fn needs_reinstall() -> anyhow::Result<bool> {
         return Ok(true);
     }
 
-    Ok(false)
+    // Ok(false)
+
+    Ok(True)
 }
 
 fn build_crtx(name: &str, build_info: &Triple) -> anyhow::Result<()> {
