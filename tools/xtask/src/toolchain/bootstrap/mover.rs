@@ -4,19 +4,6 @@ use super::paths as bootstrap;
 use crate::toolchain::pathfinding;
 
 pub fn move_all(host_triple: &str, target_triple: &str) -> anyhow::Result<()> {
-    // let install_dir = std::env::current_dir()
-    //     .unwrap()
-    //     .join("./toolchain/install/");
-
-    // let move_dir = |prev: PathBuf, next: PathBuf| -> anyhow::Result<()> {
-    //     println!("moving {} to {}", prev.to_str().unwrap(), next.to_str().unwrap());
-    //     let _ = Command::new("cp -r")
-    //         .arg(prev.to_str().unwrap())
-    //         .arg(next.to_str().unwrap())
-    //         .spawn()?;
-    //     Ok(())
-    // };
-
     let move_dir = |prev: PathBuf, next: PathBuf| -> anyhow::Result<()> {
         println!("moving {} to {}", prev.display(), next.display());
 
@@ -49,7 +36,7 @@ pub fn move_all(host_triple: &str, target_triple: &str) -> anyhow::Result<()> {
 
     // rust stage2 std
     let old_rust_stage_2 = bootstrap::get_rust_stage2_std(host_triple, target_triple)?;
-    let new_rust_stage_2 = pathfinding::get_llvm_native_runtime_install(target_triple)?;
+    let new_rust_stage_2 = pathfinding::get_rust_stage2_std(target_triple)?;
     move_dir(old_rust_stage_2, new_rust_stage_2)?;
 
     // rust lld
