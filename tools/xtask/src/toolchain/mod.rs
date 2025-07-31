@@ -2,6 +2,7 @@ use std::{path::Path, process::Command};
 
 use bootstrap::do_bootstrap;
 use clap::Subcommand;
+use git2::Repository;
 use guess_host_triple::guess_host_triple;
 use pathfinding::{get_rustc_path, get_rustdoc_path, get_rustlib_bin};
 use reqwest::Client;
@@ -72,10 +73,21 @@ pub fn handle_cli(subcommand: ToolchainCommands) -> anyhow::Result<()> {
     }
 }
 
+//TODO: fix this shi mane
 fn get_rust_commit() -> anyhow::Result<String> {
-    let repo = git2::Repository::open("toolchain/src/rust")?;
-    let cid = repo.head()?.peel_to_commit()?.id();
-    Ok(cid.to_string())
+    let repo = Repository::open("./")?;
+    let submodules = repo.submodules()?;
+    // let cid = repo.head()?.peel_to_commit()?.id();
+
+    let oid = submodules
+        .iter()
+        .find(|e| e.name().expect("submodulue should have a name") == "toolchain/src/rust")
+        .unwrap_or_else(|| panic!("submodule not found at path: {}", "toolchain/src/rust"))
+        .head_id()
+        .expect("head should exist")
+        .to_string();
+
+    Ok(oid.to_string())
 }
 
 fn get_abi_version() -> anyhow::Result<semver::Version> {
