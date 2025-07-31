@@ -64,3 +64,10 @@ pub fn get_lld_bin(host_triple: &str) -> anyhow::Result<PathBuf> {
         .join("lld/bin");
     Ok(llvm_bin)
 }
+
+pub fn get_compiler_rt_path() -> anyhow::Result<PathBuf> {
+    let curdir = std::env::current_dir().unwrap();
+    let compiler_rt = curdir.join("toolchain/src/rust/src/llvm-project/compiler-rt");
+
+    Ok(compiler_rt)
+}

@@ -105,6 +105,13 @@ pub fn get_rustlib_lib(host_triple: &str) -> anyhow::Result<PathBuf> {
     Ok(rustlib_bin)
 }
 
+pub fn get_compiler_rt_path() -> anyhow::Result<PathBuf> {
+    let compiler_rt = PathBuf::from(get_toolchain_path()?)
+        .join("toolchain/src/rust/src/llvm-project/compiler-rt");
+
+    Ok(compiler_rt)
+}
+
 pub fn get_rust_lld(host_triple: &str) -> anyhow::Result<PathBuf> {
     let rustlib_bin = PathBuf::from(get_toolchain_path()?)
         .join("rust/build")

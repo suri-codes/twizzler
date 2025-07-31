@@ -235,6 +235,7 @@ pub(crate) fn init_for_build(abi_changes_ok: bool) -> anyhow::Result<()> {
     let current_dir = std::env::current_dir().unwrap();
     std::env::set_var("PYTHONPATH", current_dir.join("toolchain/install/python"));
 
+    //TODO: MOVE COMPILER RT PATH
     let compiler_rt_path = "toolchain/src/rust/src/llvm-project/compiler-rt";
     std::env::set_var(
         "RUST_COMPILER_RT_ROOT",
