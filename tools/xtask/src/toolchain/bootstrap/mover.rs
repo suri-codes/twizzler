@@ -9,7 +9,7 @@ pub fn move_all(host_triple: &str, target_triple: &str) -> anyhow::Result<()> {
 
         // Remove destination if it exists
         if next.exists() {
-            std::fs::remove_dir_all(&next)?;
+            let _ = std::fs::remove_dir_all(&next);
         }
 
         if let Some(parent) = next.parent() {

@@ -343,6 +343,7 @@ pub(crate) fn do_bootstrap(cli: BootstrapOptions) -> anyhow::Result<()> {
 fn generate_config_toml() -> anyhow::Result<()> {
     /* We need to add two(ish) things to the config.toml for rustc: the paths of tools for each twizzler target (built by LLVM as part
     of rustc), and the host triple (added to the list of triples to support). */
+    //TODO: make this an actual path instead of rle path
     let mut data = File::open("toolchain/src/config.toml")?;
     let mut buf = String::new();
     data.read_to_string(&mut buf)?;
