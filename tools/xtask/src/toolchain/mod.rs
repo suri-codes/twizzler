@@ -243,7 +243,7 @@ pub(crate) fn init_for_build(abi_changes_ok: bool) -> anyhow::Result<()> {
 
     let var = std::env::var("TWIZZLER_ABI_BUILTIN_HEADERS").unwrap();
 
-    println!("{var}");
+    eprintln!("TWIZZLER_ABI_BUILTIN_HEADERS {var}");
 
     //TODO: MOVE COMPILER RT PATH
     // let compiler_rt_path = "toolchain/src/rust/src/llvm-project/compiler-rt";
