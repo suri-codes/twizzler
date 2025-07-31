@@ -153,3 +153,10 @@ pub fn get_llvm_native_runtime_install(target_triple: &str) -> anyhow::Result<Pa
         .join(archive_name);
     Ok(dir)
 }
+
+pub fn get_builtin_headers() -> anyhow::Result<PathBuf> {
+    let headers =
+        PathBuf::from(get_toolchain_path()?).join("rust/build/host/llvm/lib/clang/20/include/");
+
+    Ok(headers)
+}

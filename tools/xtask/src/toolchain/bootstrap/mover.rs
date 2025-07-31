@@ -64,5 +64,10 @@ pub fn move_all(host_triple: &str, target_triple: &str) -> anyhow::Result<()> {
     let new_lld_bin = pathfinding::get_lld_bin(host_triple)?;
     move_dir(old_lld_bin, new_lld_bin)?;
 
+    // builtin headers
+    let old_builtins = bootstrap::get_builtin_headers()?;
+    let new_builtins = pathfinding::get_builtin_headers()?;
+    move_dir(old_builtins, new_builtins)?;
+
     Ok(())
 }

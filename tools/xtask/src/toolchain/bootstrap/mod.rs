@@ -152,8 +152,12 @@ pub(crate) fn do_bootstrap(cli: BootstrapOptions) -> anyhow::Result<()> {
         }
     }
     let current_dir = std::env::current_dir().unwrap();
-    let builtin_headers =
-        current_dir.join("toolchain/src/rust/build/host/llvm/lib/clang/20/include/");
+
+    //TODO: FIX THESE HEADERS
+
+    let builtin_headers = get_builtin_headers()?;
+    // let builtin_headers =
+    //     current_dir.join("toolchain/src/rust/build/host/llvm/lib/clang/20/include/");
     std::env::set_var("TWIZZLER_ABI_BUILTIN_HEADERS", builtin_headers);
 
     let keep_args = if cli.keep_early_stages {
