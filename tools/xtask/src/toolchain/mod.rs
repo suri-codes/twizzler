@@ -1,29 +1,21 @@
 use std::{
-    fs::{remove_dir_all, File},
+    fs::File,
     io::{Read, Write},
-    path::{Path, PathBuf},
+    path::Path,
     process::Command,
-    vec,
 };
 
-use anyhow::Context;
 use bootstrap::do_bootstrap;
 use clap::Subcommand;
-use fs_extra::dir::CopyOptions;
 use guess_host_triple::guess_host_triple;
-use indicatif::{ProgressBar, ProgressStyle};
-use pathfinding::{
-    get_lld_bin, get_llvm_bin, get_llvm_native_runtime, get_llvm_native_runtime_install,
-    get_rust_lld, get_rustc_path, get_rustdoc_path, get_rustlib_bin,
-};
+use pathfinding::{get_rust_lld, get_rustc_path, get_rustdoc_path, get_rustlib_bin};
 use reqwest::Client;
 use toml_edit::DocumentMut;
-use utils::{download_file, install_build_tools};
+use utils::download_file;
 
 use crate::triple::{all_possible_platforms, Triple};
 
 mod bootstrap;
-mod mover;
 mod pathfinding;
 mod utils;
 
