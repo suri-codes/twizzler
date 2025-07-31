@@ -179,6 +179,7 @@ pub(crate) fn do_bootstrap(cli: BootstrapOptions) -> anyhow::Result<()> {
             .current_dir("toolchain/src/rust")
             .status()?;
         if !status.success() {
+            println!("CC: {}", std::env::var("CC").unwrap());
             anyhow::bail!("failed to compile rust toolchain");
         }
 

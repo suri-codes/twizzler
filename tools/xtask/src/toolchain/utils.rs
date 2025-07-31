@@ -1,23 +1,15 @@
 use std::{
-    fs::{remove_dir_all, File},
+    fs::File,
     io::{Read, Write},
-    os::unix::process::CommandExt,
-    path::{Path, PathBuf},
     process::Command,
-    sync::Arc,
-    vec,
 };
 
 use anyhow::Context;
-use fs_extra::dir::CopyOptions;
-use git2::{Oid, Repository, SubmoduleUpdate};
-use guess_host_triple::guess_host_triple;
+use git2::Repository;
 use indicatif::{ProgressBar, ProgressStyle};
 use reqwest::Client;
-use toml_edit::DocumentMut;
 
-use super::{get_toolchain_path, BootstrapOptions};
-use crate::triple::{all_possible_platforms, Triple};
+use super::BootstrapOptions;
 
 pub async fn download_file(client: &Client, url: &str, path: &str) -> anyhow::Result<()> {
     use futures_util::StreamExt;
