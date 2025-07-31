@@ -488,6 +488,7 @@ fn compile(
     other_options: &OtherOptions,
 ) -> anyhow::Result<TwizzlerCompilation> {
     check_build_target(bc)?;
+
     crate::toolchain::init_for_build(
         mode.is_doc() || mode.is_check() || !other_options.build_twizzler,
     )?;
