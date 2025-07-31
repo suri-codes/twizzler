@@ -13,8 +13,7 @@ use super::{utils::install_build_tools, BootstrapOptions};
 use crate::{
     toolchain::{
         build_crtx, compress_toolchain, download_efi_files, generate_config_toml, get_abi_version,
-        get_rust_commit, move_stamp, mover::move_all, prune_toolchain, write_stamp,
-        NEXT_STAMP_PATH,
+        get_rust_commit, move_stamp, prune_toolchain, write_stamp, NEXT_STAMP_PATH,
     },
     triple::all_possible_platforms,
 };
