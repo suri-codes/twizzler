@@ -34,6 +34,7 @@ fn main() {
         let path = PathBuf::from(args.kernel_path);
         path.canonicalize().unwrap()
     };
+
     let initrd_path = {
         let path = PathBuf::from(args.initrd_path);
         path.canonicalize().unwrap()
