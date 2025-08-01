@@ -266,7 +266,9 @@ pub(crate) fn init_for_build(abi_changes_ok: bool) -> anyhow::Result<()> {
     let path = std::env::var("PATH").unwrap();
     let lld_bin = get_lld_bin(guess_host_triple().unwrap())?.canonicalize()?;
     // let llvm_bin = get_llvm_bin(guess_host_triple().unwrap())?.cano;
-    let rustlib_bin = get_rustlib_bin(guess_host_triple().unwrap())?.canonicalize()?;
+    let rustlib_bin = get_rustlib_bin(guess_host_triple().unwrap())?;
+    println!("rustlib_bin: {}", rustlib_bin.to_string_lossy());
+    let rustlib_bin = rustlib_bin.canonicalize()?;
     let toolchain_bin = get_bin_path()?.canonicalize()?;
 
     std::env::set_var(
