@@ -10,7 +10,7 @@ use git2::Repository;
 use indicatif::{ProgressBar, ProgressStyle};
 use reqwest::Client;
 
-use super::{get_bin_path, BootstrapOptions};
+use super::{get_bin_path, get_toolchain_path, BootstrapOptions};
 
 pub async fn download_file(client: &Client, url: &str, path: &str) -> anyhow::Result<()> {
     use futures_util::StreamExt;
@@ -181,6 +181,8 @@ fn generate_hash() -> anyhow::Result<String> {
 pub fn compress_toolchain() -> anyhow::Result<()> {
     let tag = generate_tag()?;
 
+    let tc_path = get_toolchain_path()?;
+
     // when we build the toolchain we ideally move everything into install and then compress
     // that no?
     let _ = Command::new("tar")
@@ -188,7 +190,7 @@ pub fn compress_toolchain() -> anyhow::Result<()> {
         .arg("-c")
         .arg("-f")
         .arg([tag.as_str(), ".tar.zst"].concat())
-        .arg("toolchain/install")
+        .arg(tc_path)
         .spawn()?;
 
     Ok(())
