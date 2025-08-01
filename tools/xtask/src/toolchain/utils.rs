@@ -1,6 +1,7 @@
 use std::{
     fs::{self, File},
     io::{Read, Write},
+    path::PathBuf,
     process::Command,
 };
 
@@ -42,23 +43,27 @@ pub async fn download_file(client: &Client, url: &str, path: &str) -> anyhow::Re
     Ok(())
 }
 
-pub fn install_build_tools(_cli: &BootstrapOptions) -> anyhow::Result<()> {
+pub fn install_build_tools(
+    _cli: &BootstrapOptions,
+    mut install_dir: PathBuf,
+) -> anyhow::Result<()> {
     println!("installing bindgen");
     let status = Command::new("cargo")
         .arg("install")
         .arg("--root")
-        .arg("toolchain/install")
+        .arg(&install_dir)
         .arg("bindgen-cli")
         .status()?;
     if !status.success() {
         anyhow::bail!("failed to install bindgen");
     }
 
+    install_dir.push("python");
     println!("installing meson & ninja");
     let status = Command::new("pip3")
         .arg("install")
         .arg("--target")
-        .arg("toolchain/install/python")
+        .arg(install_dir)
         .arg("--force-reinstall")
         .arg("--ignore-installed")
         .arg("--no-warn-script-location")
@@ -92,10 +97,10 @@ pub fn prune_bins() -> anyhow::Result<()> {
         let entry = entry?;
         if let Some(name) = entry.file_name().to_str() {
             if !wanted_bins.contains(&name) {
+                let mut unwanted_bin = bin_path.clone();
+                unwanted_bin.push(name);
                 // we delete
-                Command::new("rm")
-                    .arg(format!("{}/{}", &bin_path, name))
-                    .status()?;
+                Command::new("rm").arg(unwanted_bin).status()?;
             }
         }
     }

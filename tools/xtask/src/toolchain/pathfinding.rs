@@ -1,36 +1,61 @@
 use std::path::{Path, PathBuf};
 
+use super::generate_tag;
 use crate::triple::Triple;
 
 //TODO: this should return the canonicalized path to the toolchain!
-pub fn get_toolchain_path() -> anyhow::Result<String> {
+pub fn get_toolchain_path() -> anyhow::Result<PathBuf> {
     let mut curr_dir = std::env::current_dir()?;
-    curr_dir.push("toolchain/install");
-    Ok(curr_dir.to_str().unwrap().to_owned())
+    // curr_dir.push("toolchain/install");
+    // Ok(curr_dir.to_str().unwrap().to_owned())
+
+    let tag = generate_tag()?;
+    curr_dir.push("toolchain");
+    curr_dir.push(tag);
+
+    Ok(curr_dir)
+    // Ok(curr_dir.to_str().unwrap().to_owned())
 }
 
-pub fn get_rustc_path() -> anyhow::Result<String> {
-    let toolchain = get_toolchain_path()?;
-    Ok(format!("{}/bin/rustc", toolchain))
+pub fn get_rustc_path() -> anyhow::Result<PathBuf> {
+    let mut rustc_path = get_toolchain_path()?;
+
+    rustc_path.push("bin/rustc");
+
+    Ok(rustc_path)
+    // Ok(format!("{}/bin/rustc", rustc_path))
 }
 
-pub fn get_rustdoc_path() -> anyhow::Result<String> {
-    let toolchain = get_toolchain_path()?;
-    Ok(format!("{}/bin/rustdoc", toolchain))
+pub fn get_rustdoc_path() -> anyhow::Result<PathBuf> {
+    let mut rustdoc_path = get_toolchain_path()?;
+
+    rustdoc_path.push("/bin/rustdoc");
+    Ok(rustdoc_path)
+
+    // Ok(format!("{}/bin/rustdoc", toolchain))
 }
 
-pub fn get_bin_path() -> anyhow::Result<String> {
-    let toolchain = get_toolchain_path()?;
-    Ok(format!("{}/bin", toolchain))
+pub fn get_bin_path() -> anyhow::Result<PathBuf> {
+    let mut toolchain_bins = get_toolchain_path()?;
+    toolchain_bins.push("bin");
+    Ok(toolchain_bins)
+
+    // Ok(format!("{}/bin", toolchain_bins.to_string_lossy()))
 }
 
 pub fn set_cc(target: &Triple) -> anyhow::Result<()> {
     let toolchain_path = get_toolchain_path()?;
 
+    let clang_path = {
+        let mut clang_path = toolchain_path.clone();
+        clang_path.push("bin/clang");
+        clang_path.canonicalize().unwrap()
+    };
+
     // When compiling crates that compile C code (e.g. alloca), we need to use our clang.
-    let clang_path = Path::new(format!("{}/bin/clang", toolchain_path).as_str())
-        .canonicalize()
-        .unwrap();
+    // let clang_path = Path::new(format!("{}/bin/clang", toolchain_path).as_str())
+    //     .canonicalize()
+    //     .unwrap();
     std::env::set_var("CC", &clang_path);
     std::env::set_var("LD", &clang_path);
     std::env::set_var("CXX", &clang_path);
@@ -38,7 +63,7 @@ pub fn set_cc(target: &Triple) -> anyhow::Result<()> {
     // We don't have any real system-include files, but we can provide these extremely simple ones.
     let sysroot_path = Path::new(&format!(
         "{}/sysroots/{}",
-        toolchain_path,
+        toolchain_path.to_string_lossy(),
         target.to_string()
     ))
     .canonicalize()
@@ -106,8 +131,8 @@ pub fn get_rustlib_lib(host_triple: &str) -> anyhow::Result<PathBuf> {
 }
 
 pub fn get_compiler_rt_path() -> anyhow::Result<PathBuf> {
-    let compiler_rt = PathBuf::from(get_toolchain_path()?)
-        .join("toolchain/src/rust/src/llvm-project/compiler-rt");
+    let compiler_rt =
+        PathBuf::from(get_toolchain_path()?).join("rust/src/llvm-project/compiler-rt");
 
     Ok(compiler_rt)
 }

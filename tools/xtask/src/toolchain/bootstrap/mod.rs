@@ -13,8 +13,9 @@ use toml_edit::DocumentMut;
 use super::{utils::install_build_tools, BootstrapOptions};
 use crate::{
     toolchain::{
-        build_crtx, compress_toolchain, download_efi_files, get_abi_version, get_rust_commit,
-        move_stamp, prune_bins, prune_toolchain, write_stamp, NEXT_STAMP_PATH,
+        build_crtx, compress_toolchain, download_efi_files, get_abi_version, get_bin_path,
+        get_rust_commit, get_toolchain_install_path, get_toolchain_path, move_stamp, prune_bins,
+        prune_toolchain, write_stamp, NEXT_STAMP_PATH,
     },
     triple::all_possible_platforms,
 };
@@ -24,7 +25,9 @@ use paths::*;
 mod mover;
 
 pub(crate) fn do_bootstrap(cli: BootstrapOptions) -> anyhow::Result<()> {
-    fs_extra::dir::create_all("toolchain/install", false)?;
+    let toolchain_path = get_toolchain_install_path()?;
+
+    fs_extra::dir::create_all(&toolchain_path, false)?;
     if !cli.skip_downloads {
         let client = Client::new();
         tokio::runtime::Builder::new_current_thread()
@@ -33,7 +36,7 @@ pub(crate) fn do_bootstrap(cli: BootstrapOptions) -> anyhow::Result<()> {
             .block_on(download_efi_files(&client))?;
     }
 
-    install_build_tools(&cli)?;
+    install_build_tools(&cli, toolchain_path.clone())?;
     let current_dir = std::env::current_dir().unwrap();
     std::env::set_var("PYTHONPATH", current_dir.join("toolchain/install/python"));
 
@@ -62,27 +65,38 @@ pub(crate) fn do_bootstrap(cli: BootstrapOptions) -> anyhow::Result<()> {
 
     let path = std::env::var("PATH").unwrap();
     let lld_bin = get_lld_bin(guess_host_triple().unwrap())?;
+
+    let mut python_bins = {
+        let x = get_toolchain_path()?;
+        x.push("python/bin");
+        x.canonicalize()?
+    };
+
     std::env::set_var(
         "PATH",
         format!(
             "{}:{}:{}:{}",
             lld_bin.to_string_lossy(),
-            std::fs::canonicalize("toolchain/install/bin")
-                .unwrap()
-                .to_string_lossy(),
-            std::fs::canonicalize("toolchain/install/python/bin")
-                .unwrap()
-                .to_string_lossy(),
+            get_bin_path()?.canonicalize()?.to_string_lossy(),
+            python_bins.to_string_lossy(),
             path
         ),
     );
 
     for target_triple in all_possible_platforms() {
         let current_dir = std::env::current_dir().unwrap();
-        let sysroot_dir = current_dir.join(format!(
-            "toolchain/install/sysroots/{}",
-            target_triple.to_string()
-        ));
+
+        let sysroot_dir = {
+            let x = get_toolchain_path()?;
+            x.push("sysroots");
+            x.push(target_triple.to_string());
+            x
+        };
+        // current_dir.join(format!(
+        //     "toolchain/install/sysroots/{}",
+        //     target_triple.to_string()
+        // ));
+
         let build_dir_name = format!("build-{}", target_triple.to_string());
         let src_dir = current_dir.join("toolchain/src/mlibc");
         let build_dir = src_dir.join(&build_dir_name);
@@ -99,7 +113,7 @@ pub(crate) fn do_bootstrap(cli: BootstrapOptions) -> anyhow::Result<()> {
             ("ar", "llvm-ar"),
             ("strip", "llvm-strip"),
         ] {
-            let path = current_dir.join("toolchain/install/bin");
+            let path = get_bin_path()?;
             let path = path.join(tool.1);
             writeln!(&mut cf, "{} = '{}'", tool.0, path.display())?;
         }
@@ -147,17 +161,13 @@ pub(crate) fn do_bootstrap(cli: BootstrapOptions) -> anyhow::Result<()> {
             .arg(&build_dir)
             .current_dir(current_dir.join("toolchain/src/mlibc"))
             .status()?;
+
         if !status.success() {
             anyhow::bail!("failed to install mlibc headers");
         }
     }
 
-    //TODO: FIX THESE HEADERS
-
     let builtin_headers = get_builtin_headers()?;
-    // let current_dir = std::env::current_dir().unwrap();
-    // let builtin_headers =
-    //     current_dir.join("toolchain/src/rust/build/host/llvm/lib/clang/20/include/");
     std::env::set_var("TWIZZLER_ABI_BUILTIN_HEADERS", builtin_headers);
 
     let keep_args = if cli.keep_early_stages {
@@ -193,6 +203,7 @@ pub(crate) fn do_bootstrap(cli: BootstrapOptions) -> anyhow::Result<()> {
             .args(keep_args)
             .current_dir("toolchain/src/rust")
             .status()?;
+
         if !src_status.success() {
             anyhow::bail!("failed to install rust source");
         }
@@ -223,10 +234,15 @@ pub(crate) fn do_bootstrap(cli: BootstrapOptions) -> anyhow::Result<()> {
 
         for name in &["crtbegin", "crtend", "crtbeginS", "crtendS"] {
             let src = format!("toolchain/src/rust/build/{}/native/crt/{}.o", &target, name);
-            let dst = format!("toolchain/install/lib/clang/20/lib/{}/{}.o", &target, name);
+
+            let mut dst = get_toolchain_path()?;
+            dst.push(format!("lib/clang/20/lib/{}/{}.o", &target, name));
+            // let dst = format!("toolchain/install/lib/clang/20/lib/{}/{}.o", &target, name);
             std::fs::copy(src, dst)?;
         }
         for name in &["crti", "crtn"] {
+
+            let mut dst = get_toolchain_path()?;
             let src = format!(
                 "toolchain/install/lib/rustlib/{}/lib/self-contained/{}.o",
                 &target, name
