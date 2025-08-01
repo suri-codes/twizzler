@@ -214,6 +214,7 @@ pub fn set_dynamic(target: &Triple) {
         tc_path.push(format!("sysroots/{}/lib", target.to_string()));
 
         tc_path.canonicalize().unwrap();
+        tc_path
 
         // Path::new(&format!(
         //  "toolchain/install/sysroots/{}/lib",
