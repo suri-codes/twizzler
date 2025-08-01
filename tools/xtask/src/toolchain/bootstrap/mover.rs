@@ -1,7 +1,7 @@
-use std::{path::PathBuf, process::Command};
+use std::{env::current_dir, fs::remove_dir_all, path::PathBuf, process::Command};
 
 use super::paths as bootstrap;
-use crate::toolchain::pathfinding;
+use crate::toolchain::{get_toolchain_path, pathfinding};
 
 pub fn move_all(host_triple: &str, target_triple: &str) -> anyhow::Result<()> {
     let move_dir = |prev: PathBuf, next: PathBuf| -> anyhow::Result<()> {
@@ -28,6 +28,18 @@ pub fn move_all(host_triple: &str, target_triple: &str) -> anyhow::Result<()> {
 
         Ok(())
     };
+
+    // first we just move the install directory
+    let old_install_dir = {
+        let mut x = current_dir()?;
+        x.push("toolchain/install");
+        x
+    };
+
+    let new_install_dir = get_toolchain_path()?;
+    move_dir(old_install_dir.clone(), new_install_dir);
+    // remove the old install dir
+    remove_dir_all(old_install_dir);
 
     // llvm native runtime
     let old_llvm_rt = bootstrap::get_llvm_native_runtime(target_triple)?;
