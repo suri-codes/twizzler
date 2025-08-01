@@ -183,7 +183,6 @@ pub fn compress_toolchain() -> anyhow::Result<()> {
 
     let tc_path = get_toolchain_path()?;
 
-
     // when we build the toolchain we ideally move everything into install and then compress
     // that no?
     let _ = Command::new("tar")
@@ -192,6 +191,7 @@ pub fn compress_toolchain() -> anyhow::Result<()> {
         .arg("-f")
         .arg([tag.as_str(), ".tar.zst"].concat())
         .arg(tc_path)
+        .arg("--strip-components=1")
         .spawn()?;
 
     Ok(())
