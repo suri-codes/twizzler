@@ -12,6 +12,7 @@ use unittest_report::ReportStatus;
 
 use crate::{
     image::ImageInfo,
+    toolchain::get_toolchain_path,
     triple::{Arch, Machine},
     QemuOptions,
 };
@@ -148,10 +149,13 @@ impl QemuCommand {
     }
 
     fn arch_config(&mut self, options: &QemuOptions) {
+        let mut ovmf = get_toolchain_path().unwrap();
+
         match self.arch {
             Arch::X86_64 => {
+                ovmf.push("OVMF.fd");
                 // bios, platform
-                self.cmd.arg("-bios").arg("toolchain/install/OVMF.fd");
+                self.cmd.arg("-bios").arg(ovmf);
                 self.cmd.arg("-machine").arg("q35,nvdimm=on");
 
                 // add qemu exit device for testing
@@ -184,7 +188,8 @@ impl QemuCommand {
                 */
             }
             Arch::Aarch64 => {
-                self.cmd.arg("-bios").arg("toolchain/install/OVMF-AA64.fd");
+                ovmf.push("OVMF-AA64.fd");
+                self.cmd.arg("-bios").arg(ovmf);
                 self.cmd.arg("-net").arg("none");
                 if self.machine == Machine::Morello {
                     self.cmd.arg("-machine").arg("virt,gic-version=3");
