@@ -183,6 +183,7 @@ pub fn compress_toolchain() -> anyhow::Result<()> {
 
     let tc_path = get_toolchain_path()?;
 
+
     // when we build the toolchain we ideally move everything into install and then compress
     // that no?
     let _ = Command::new("tar")
