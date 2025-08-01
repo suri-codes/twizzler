@@ -1,11 +1,13 @@
 use std::path::{Path, PathBuf};
 
+use super::generate_tag;
 use crate::triple::Triple;
 
 //TODO: this should return the canonicalized path to the toolchain!
 pub fn get_toolchain_path() -> anyhow::Result<String> {
     let mut curr_dir = std::env::current_dir()?;
-    curr_dir.push("toolchain/install");
+    let tag = generate_tag()?;
+    curr_dir.push(tag);
     Ok(curr_dir.to_str().unwrap().to_owned())
 }
 

@@ -330,6 +330,8 @@ pub(crate) fn do_bootstrap(cli: BootstrapOptions) -> anyhow::Result<()> {
         mover::move_all(host_triple, &target_triple.to_string())?;
     }
 
+    // sometimes there is a .target-xtask folder put into /install for no reason.
+
     if !cli.skip_prune {
         prune_toolchain()?;
     }
