@@ -104,26 +104,42 @@ pub fn prune_bins() -> anyhow::Result<()> {
     Ok(())
 }
 
-// lol
 pub fn prune_toolchain() -> anyhow::Result<()> {
-    // let prune_path = format!("{}/prune.txt", get_toolchain_path()?);
-    //TODO: figure out how this is going to work with multiple toolchains
-    let prune_path = "toolchain/prune.txt";
+    // git submodule deinit toolchain/src/rust
+    // git submodule deinit toolchain/src/mlibc
+    // rm -rf .git/modules/toolchain/src/rust
+    // rm -rf .git/modules/toolchain/src/mlibc
 
-    let mut prune_f = File::open(prune_path)
-        .with_context(|| format!("was not able to find prune file at path {}", &prune_path))?;
+    let submodule_deinit = |path: &PathBuf| -> anyhow::Result<()> {
+        Command::new("git")
+            .arg("submodule")
+            .arg("deinit")
+            .arg(path)
+            .status()?;
 
-    let mut to_prune = String::new();
+        Ok(())
+    };
 
-    prune_f.read_to_string(&mut to_prune)?;
+    let rm_git_modules = |path: &PathBuf| -> anyhow::Result<()> {
+        let mut git_modules_path = PathBuf::from(".git/modules");
+        git_modules_path.push(path);
 
-    for path in to_prune.lines() {
-        // A safety check to make sure that we only remove stuff inside toolchain as some
-        // destructive operations are ahead
-        assert!(path.to_owned().starts_with("./toolchain"));
+        Command::new("rm")
+            .arg("-rf")
+            .arg(git_modules_path)
+            .status()?;
 
-        let _ = Command::new("rm").args(["-rf", path]).spawn()?;
-    }
+        Ok(())
+    };
+
+    let rust = PathBuf::from("toolchain/src/rust");
+    let mlibc = PathBuf::from("toolchain/src/mlibc");
+
+    submodule_deinit(&rust)?;
+    submodule_deinit(&mlibc)?;
+
+    rm_git_modules(&rust)?;
+    rm_git_modules(&mlibc)?;
 
     Ok(())
 }
@@ -183,8 +199,6 @@ pub fn compress_toolchain() -> anyhow::Result<()> {
 
     let tc_path = get_toolchain_path()?;
 
-    // when we build the toolchain we ideally move everything into install and then compress
-    // that no?
     let _ = Command::new("tar")
         .arg("--zstd")
         .arg("-c")
@@ -192,6 +206,22 @@ pub fn compress_toolchain() -> anyhow::Result<()> {
         .arg([tag.as_str(), ".tar.zst"].concat())
         .arg(tc_path)
         .spawn()?;
+
+    Ok(())
+}
+
+pub fn decompress_toolchain(archive_path: PathBuf) -> anyhow::Result<()> {
+    // `tar --zstd -xf toolchain_arm64_Darwin_46042ba-1a94b71-4543a3e.tar.zst --strip-components=1
+    // -C toolchain/`
+    //
+    let _ = Command::new("tar")
+        .arg("--zstd")
+        .arg("-xf")
+        .arg(archive_path)
+        .arg("--strip-components=1")
+        .arg("-C")
+        .arg("toolchain/")
+        .status()?;
 
     Ok(())
 }

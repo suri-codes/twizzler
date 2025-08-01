@@ -152,12 +152,7 @@ pub(crate) fn do_bootstrap(cli: BootstrapOptions) -> anyhow::Result<()> {
         }
     }
 
-    //TODO: FIX THESE HEADERS
-
     let builtin_headers = get_builtin_headers()?;
-    // let current_dir = std::env::current_dir().unwrap();
-    // let builtin_headers =
-    //     current_dir.join("toolchain/src/rust/build/host/llvm/lib/clang/20/include/");
     std::env::set_var("TWIZZLER_ABI_BUILTIN_HEADERS", builtin_headers);
 
     let keep_args = if cli.keep_early_stages {
@@ -329,8 +324,6 @@ pub(crate) fn do_bootstrap(cli: BootstrapOptions) -> anyhow::Result<()> {
     for target_triple in all_possible_platforms() {
         mover::move_all(host_triple, &target_triple.to_string())?;
     }
-
-    // sometimes there is a .target-xtask folder put into /install for no reason.
 
     if !cli.skip_prune {
         prune_toolchain()?;
