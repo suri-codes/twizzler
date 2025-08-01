@@ -99,7 +99,7 @@ pub fn clear_rustflags() {
 }
 
 pub fn get_lld_bin(host_triple: &str) -> anyhow::Result<PathBuf> {
-    let llvm_bin = PathBuf::from(get_toolchain_path()?)
+    let llvm_bin = get_toolchain_path()?
         .join("rust/build")
         .join(host_triple)
         .join("lld/bin");
@@ -107,7 +107,7 @@ pub fn get_lld_bin(host_triple: &str) -> anyhow::Result<PathBuf> {
 }
 
 pub fn get_llvm_bin(host_triple: &str) -> anyhow::Result<PathBuf> {
-    let llvm_bin = PathBuf::from(get_toolchain_path()?)
+    let llvm_bin = get_toolchain_path()?
         .join("rust/build")
         .join(host_triple)
         .join("llvm/bin");
@@ -115,15 +115,15 @@ pub fn get_llvm_bin(host_triple: &str) -> anyhow::Result<PathBuf> {
 }
 
 pub fn get_rustlib_bin(host_triple: &str) -> anyhow::Result<PathBuf> {
-    let rustlib_bin = PathBuf::from(get_toolchain_path()?)
-        .join("toolchain/install/lib/rustlib")
+    let rustlib_bin = get_toolchain_path()?
+        .join("lib/rustlib")
         .join(host_triple)
         .join("bin");
     Ok(rustlib_bin)
 }
 
 pub fn get_rustlib_lib(host_triple: &str) -> anyhow::Result<PathBuf> {
-    let rustlib_bin = PathBuf::from(get_toolchain_path()?)
+    let rustlib_bin = get_toolchain_path()?
         .join("lib/rustlib")
         .join(host_triple)
         .join("lib");
@@ -131,14 +131,13 @@ pub fn get_rustlib_lib(host_triple: &str) -> anyhow::Result<PathBuf> {
 }
 
 pub fn get_compiler_rt_path() -> anyhow::Result<PathBuf> {
-    let compiler_rt =
-        PathBuf::from(get_toolchain_path()?).join("rust/src/llvm-project/compiler-rt");
+    let compiler_rt = get_toolchain_path()?.join("rust/src/llvm-project/compiler-rt");
 
     Ok(compiler_rt)
 }
 
 pub fn get_rust_lld(host_triple: &str) -> anyhow::Result<PathBuf> {
-    let rustlib_bin = PathBuf::from(get_toolchain_path()?)
+    let rustlib_bin = get_toolchain_path()?
         .join("rust/build")
         .join(host_triple)
         .join("stage1/lib/rustlib")
