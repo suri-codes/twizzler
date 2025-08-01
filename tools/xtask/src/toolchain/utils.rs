@@ -191,7 +191,6 @@ pub fn compress_toolchain() -> anyhow::Result<()> {
         .arg("-f")
         .arg([tag.as_str(), ".tar.zst"].concat())
         .arg(tc_path)
-        .arg("--strip-components=1")
         .spawn()?;
 
     Ok(())
