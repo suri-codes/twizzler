@@ -3,18 +3,13 @@ use std::path::{Path, PathBuf};
 use super::generate_tag;
 use crate::triple::Triple;
 
-//TODO: this should return the canonicalized path to the toolchain!
 pub fn get_toolchain_path() -> anyhow::Result<PathBuf> {
-    // let mut curr_dir = std::env::current_dir()?;
-    // curr_dir.push("toolchain/install");
-    // Ok(curr_dir.to_str().unwrap().to_owned())
-
     let mut tc_path = PathBuf::from("toolchain");
     let tag = generate_tag()?;
     tc_path.push(tag);
+    tc_path.canonicalize()?;
 
     Ok(tc_path)
-    // Ok(curr_dir.to_str().unwrap().to_owned())
 }
 
 pub fn get_rustc_path() -> anyhow::Result<PathBuf> {
@@ -41,56 +36,6 @@ pub fn get_bin_path() -> anyhow::Result<PathBuf> {
     Ok(toolchain_bins)
 
     // Ok(format!("{}/bin", toolchain_bins.to_string_lossy()))
-}
-
-pub fn set_cc(target: &Triple) -> anyhow::Result<()> {
-    let toolchain_path = get_toolchain_path()?;
-
-    let clang_path = {
-        let mut clang_path = toolchain_path.clone();
-        clang_path.push("bin/clang");
-        clang_path.canonicalize().unwrap()
-    };
-
-    // When compiling crates that compile C code (e.g. alloca), we need to use our clang.
-    // let clang_path = Path::new(format!("{}/bin/clang", toolchain_path).as_str())
-    //     .canonicalize()
-    //     .unwrap();
-    std::env::set_var("CC", &clang_path);
-    std::env::set_var("LD", &clang_path);
-    std::env::set_var("CXX", &clang_path);
-
-    // We don't have any real system-include files, but we can provide these extremely simple ones.
-    let sysroot_path = Path::new(&format!(
-        "{}/sysroots/{}",
-        toolchain_path.to_string_lossy(),
-        target.to_string()
-    ))
-    .canonicalize()
-    .unwrap();
-    // We don't yet support stack protector. Also, don't pull in standard lib includes, as those may
-    // go to the system includes.
-    let cflags = format!(
-        "-fno-stack-protector -isysroot {} -target {} --sysroot {}",
-        sysroot_path.display(),
-        target.to_string(),
-        sysroot_path.display(),
-    );
-    std::env::set_var("CFLAGS", &cflags);
-    std::env::set_var("LDFLAGS", &cflags);
-    std::env::set_var("CXXFLAGS", &cflags);
-
-    Ok(())
-}
-
-pub fn clear_cc() {
-    std::env::remove_var("CC");
-    std::env::remove_var("CXX");
-    std::env::remove_var("LD");
-    std::env::remove_var("CC");
-    std::env::remove_var("CXXFLAGS");
-    std::env::remove_var("CFLAGS");
-    std::env::remove_var("LDFLAGS");
 }
 
 pub fn clear_rustflags() {
@@ -182,4 +127,17 @@ pub fn get_builtin_headers() -> anyhow::Result<PathBuf> {
     let headers = PathBuf::from(get_toolchain_path()?).join("lib/clang/20/include/");
 
     Ok(headers)
+}
+
+pub fn get_python_path() -> anyhow::Result<PathBuf> {
+    let mut python_path = get_toolchain_path()?;
+    python_path.push("python");
+
+    Ok(python_path)
+}
+
+pub fn get_sysroots_path(target_triple: &str) -> anyhow::Result<PathBuf> {
+    let mut tc_path = get_toolchain_path()?;
+    tc_path.push(format!("sysroots/{}/lib", target_triple));
+    Ok(tc_path)
 }

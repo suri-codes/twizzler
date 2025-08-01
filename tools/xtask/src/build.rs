@@ -224,7 +224,7 @@ fn build_twizzler<'a>(
     if !other_options.build_twizzler {
         return Ok(None);
     }
-    crate::toolchain::set_dynamic(&build_config.twz_triple());
+    crate::toolchain::set_dynamic(&build_config.twz_triple())?;
     crate::toolchain::set_cc(&build_config.twz_triple())?;
     crate::print_status_line("collection: userspace", Some(build_config));
     // let triple =  build_config.twz_triple();
@@ -261,7 +261,7 @@ fn maybe_build_tests_dynamic<'a>(
     if !other_options.build_tests || !other_options.build_twizzler {
         return Ok(None);
     }
-    crate::toolchain::set_dynamic(&build_config.twz_triple());
+    crate::toolchain::set_dynamic(&build_config.twz_triple())?;
     crate::toolchain::set_cc(&build_config.twz_triple())?;
     crate::print_status_line("collection: userspace::tests", Some(build_config));
     let triple = Triple::new(
@@ -498,7 +498,7 @@ fn compile(
     tools_config.configure(0, false, None, false, false, false, &None, &[], &[])?;
 
     crate::toolchain::set_cc(&bc.twz_triple())?;
-    crate::toolchain::set_dynamic(&bc.twz_triple());
+    crate::toolchain::set_dynamic(&bc.twz_triple())?;
 
     let mut config = GlobalContext::default()?;
     config.configure(0, false, None, false, false, false, &None, &[], &[])?;
@@ -608,3 +608,5 @@ pub(crate) fn do_check(cli: CheckOptions) -> anyhow::Result<()> {
     )?;
     Ok(())
 }
+
+

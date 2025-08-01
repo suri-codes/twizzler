@@ -2,7 +2,6 @@ use std::{path::Path, process::Command};
 
 use bootstrap::do_bootstrap;
 use clap::Subcommand;
-use git2::Repository;
 use guess_host_triple::guess_host_triple;
 use pathfinding::{get_rustc_path, get_rustdoc_path, get_rustlib_bin};
 use reqwest::Client;
@@ -67,45 +66,12 @@ pub fn handle_cli(subcommand: ToolchainCommands) -> anyhow::Result<()> {
         ToolchainCommands::Bootstrap(opts) => do_bootstrap(opts),
         ToolchainCommands::Pull => {
             todo!("implement this later")
+            // need to pull from github releases the relevant toolchain based on the generated tag
+            // decompress toolchain
         }
         ToolchainCommands::Prune => prune_toolchain(),
         ToolchainCommands::Test => Ok(()),
     }
-}
-
-//TODO: fix this shi mane
-fn get_rust_commit() -> anyhow::Result<String> {
-    let repo = Repository::open("./")?;
-    let submodules = repo.submodules()?;
-    // let cid = repo.head()?.peel_to_commit()?.id();
-
-    let oid = submodules
-        .iter()
-        .find(|e| e.name().expect("submodulue should have a name") == "toolchain/src/rust")
-        .unwrap_or_else(|| panic!("submodule not found at path: {}", "toolchain/src/rust"))
-        .head_id()
-        .expect("head should exist")
-        .to_string();
-
-    Ok(oid.to_string())
-}
-
-fn get_abi_version() -> anyhow::Result<semver::Version> {
-    let toml = cargo_toml::Manifest::from_path("src/abi/rt-abi/Cargo.toml")?;
-    let abipkg = toml.package.as_ref().unwrap();
-    Ok(semver::Version::parse(&abipkg.version.get().unwrap())?)
-}
-
-static STAMP_PATH: &str = "toolchain/install/stamp";
-static NEXT_STAMP_PATH: &str = "toolchain/install/.next_stamp";
-fn write_stamp(path: &str, rust_cid: &String, abi_vers: &String) -> anyhow::Result<()> {
-    std::fs::write(path, &format!("{}/{}", rust_cid, abi_vers))?;
-    Ok(())
-}
-
-fn move_stamp() -> anyhow::Result<()> {
-    std::fs::rename(NEXT_STAMP_PATH, STAMP_PATH)?;
-    Ok(())
 }
 
 pub fn needs_reinstall() -> anyhow::Result<bool> {
@@ -204,28 +170,20 @@ async fn download_efi_files(client: &Client) -> anyhow::Result<()> {
     Ok(())
 }
 
-pub fn set_dynamic(target: &Triple) {
+pub fn set_dynamic(target: &Triple) -> anyhow::Result<()> {
     // This is a bit of a cursed linker line, but it's needed to work around some limitations in
     // rust's linkage support.
     //
     //
-    let sysroot_path = {
-        let mut tc_path = get_toolchain_path().unwrap();
-        tc_path.push(format!("sysroots/{}/lib", target.to_string()));
-
-        tc_path.canonicalize().unwrap();
-        tc_path
-
-        // Path::new(&format!(
-        //  "toolchain/install/sysroots/{}/lib",
-        //  target.to_string()
-    };
+    let sysroot_path = get_sysroots_path(target.to_string().as_str())?;
 
     println!("SYSROOTS PATH:{}", sysroot_path.to_string_lossy());
     let args = format!("-C prefer-dynamic=y -Z staticlib-prefer-dynamic=y -C link-arg=--allow-shlib-undefined -C link-arg=--undefined-glob=__TWIZZLER_SECURE_GATE_* -C link-arg=--export-dynamic-symbol=__TWIZZLER_SECURE_GATE_* -C link-arg=--warn-unresolved-symbols -Z pre-link-arg=-L -Z pre-link-arg={} -L {}", sysroot_path.display(), sysroot_path.display());
     std::env::set_var("RUSTFLAGS", args);
     std::env::set_var("CARGO_TARGET_DIR", "target/dynamic");
     std::env::set_var("TWIZZLER_ABI_SYSROOTS", sysroot_path);
+
+    Ok(())
 }
 
 pub fn set_static() {
@@ -237,56 +195,85 @@ pub fn set_static() {
 }
 
 pub(crate) fn init_for_build(abi_changes_ok: bool) -> anyhow::Result<()> {
-    if needs_reinstall()? && !abi_changes_ok {
+    if !abi_changes_ok {
         eprintln!("!! You'll need to recompile your toolchain. Running `cargo bootstrap` should resolve the issue.");
         anyhow::bail!("toolchain needs reinstall: run cargo bootstrap.");
     }
+
+    let python_path = get_python_path()?;
+    let builtin_headers = get_builtin_headers()?;
+    let compiler_rt_path = get_compiler_rt_path()?;
+    let lld_bin = get_lld_bin(guess_host_triple().unwrap())?;
+    let rustlib_bin = get_rustlib_bin(guess_host_triple().unwrap())?;
+    let toolchain_bin = get_bin_path()?;
+    let path = std::env::var("PATH").unwrap();
+
     std::env::set_var("RUSTC", &get_rustc_path()?);
     std::env::set_var("RUSTDOC", &get_rustdoc_path()?);
     std::env::set_var("CARGO_CACHE_RUSTC_INFO", "0");
-    let current_dir = std::env::current_dir().unwrap();
-    std::env::set_var("PYTHONPATH", current_dir.join("toolchain/install/python"));
-
-    let builtin_headers = get_builtin_headers()?.canonicalize()?;
-
+    std::env::set_var("PYTHONPATH", python_path);
     std::env::set_var("TWIZZLER_ABI_BUILTIN_HEADERS", builtin_headers);
-
-    let var = std::env::var("TWIZZLER_ABI_BUILTIN_HEADERS").unwrap();
-
-    eprintln!("TWIZZLER_ABI_BUILTIN_HEADERS {var}");
-
-    //TODO: MOVE COMPILER RT PATH
-    // let compiler_rt_path = "toolchain/src/rust/src/llvm-project/compiler-rt";
-    let compiler_rt_path = get_compiler_rt_path()?;
-    std::env::set_var(
-        "RUST_COMPILER_RT_ROOT",
-        compiler_rt_path.canonicalize().unwrap(),
-    );
-
-    let path = std::env::var("PATH").unwrap();
-    let lld_bin = get_lld_bin(guess_host_triple().unwrap())?.canonicalize()?;
-    // let llvm_bin = get_llvm_bin(guess_host_triple().unwrap())?.cano;
-    let rustlib_bin = get_rustlib_bin(guess_host_triple().unwrap())?;
-    println!("rustlib_bin: {}", rustlib_bin.to_string_lossy());
-    let rustlib_bin = rustlib_bin.canonicalize()?;
-    let toolchain_bin = get_bin_path()?.canonicalize()?;
+    std::env::set_var("RUST_COMPILER_RT_ROOT", compiler_rt_path);
 
     std::env::set_var(
         "PATH",
         format!(
-            // "{}:{}:{}:{}:{}",
             "{}:{}:{}:{}",
             rustlib_bin.to_string_lossy(),
             lld_bin.to_string_lossy(),
             toolchain_bin.to_string_lossy(),
-            // ,
-            // llvm_bin.to_string_lossy(),
-            //TODO: replace with the actual toolchain path
-            // std::fs::canonicalize("toolchain/install/bin")
-            //     .unwrap()
-            //     .to_string_lossy(),
             path
         ),
     );
     Ok(())
+}
+
+pub fn set_cc(target: &Triple) -> anyhow::Result<()> {
+    let toolchain_path = get_toolchain_path()?;
+
+    let clang_path = {
+        let mut clang_path = toolchain_path.clone();
+        clang_path.push("bin/clang");
+        clang_path.canonicalize().unwrap()
+    };
+
+    // When compiling crates that compile C code (e.g. alloca), we need to use our clang.
+    // let clang_path = Path::new(format!("{}/bin/clang", toolchain_path).as_str())
+    //     .canonicalize()
+    //     .unwrap();
+    std::env::set_var("CC", &clang_path);
+    std::env::set_var("LD", &clang_path);
+    std::env::set_var("CXX", &clang_path);
+
+    // We don't have any real system-include files, but we can provide these extremely simple ones.
+    let sysroot_path = Path::new(&format!(
+        "{}/sysroots/{}",
+        toolchain_path.to_string_lossy(),
+        target.to_string()
+    ))
+    .canonicalize()
+    .unwrap();
+    // We don't yet support stack protector. Also, don't pull in standard lib includes, as those may
+    // go to the system includes.
+    let cflags = format!(
+        "-fno-stack-protector -isysroot {} -target {} --sysroot {}",
+        sysroot_path.display(),
+        target.to_string(),
+        sysroot_path.display(),
+    );
+    std::env::set_var("CFLAGS", &cflags);
+    std::env::set_var("LDFLAGS", &cflags);
+    std::env::set_var("CXXFLAGS", &cflags);
+
+    Ok(())
+}
+
+pub fn clear_cc() {
+    std::env::remove_var("CC");
+    std::env::remove_var("CXX");
+    std::env::remove_var("LD");
+    std::env::remove_var("CC");
+    std::env::remove_var("CXXFLAGS");
+    std::env::remove_var("CFLAGS");
+    std::env::remove_var("LDFLAGS");
 }

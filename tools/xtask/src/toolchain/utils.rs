@@ -105,11 +105,6 @@ pub fn prune_bins() -> anyhow::Result<()> {
 }
 
 pub fn prune_toolchain() -> anyhow::Result<()> {
-    // git submodule deinit toolchain/src/rust
-    // git submodule deinit toolchain/src/mlibc
-    // rm -rf .git/modules/toolchain/src/rust
-    // rm -rf .git/modules/toolchain/src/mlibc
-
     let submodule_deinit = |path: &PathBuf| -> anyhow::Result<()> {
         Command::new("git")
             .arg("submodule")
@@ -120,26 +115,11 @@ pub fn prune_toolchain() -> anyhow::Result<()> {
         Ok(())
     };
 
-    let rm_git_modules = |path: &PathBuf| -> anyhow::Result<()> {
-        let mut git_modules_path = PathBuf::from(".git/modules");
-        git_modules_path.push(path);
-
-        Command::new("rm")
-            .arg("-rf")
-            .arg(git_modules_path)
-            .status()?;
-
-        Ok(())
-    };
-
     let rust = PathBuf::from("toolchain/src/rust");
     let mlibc = PathBuf::from("toolchain/src/mlibc");
 
     submodule_deinit(&rust)?;
     submodule_deinit(&mlibc)?;
-
-    rm_git_modules(&rust)?;
-    rm_git_modules(&mlibc)?;
 
     Ok(())
 }

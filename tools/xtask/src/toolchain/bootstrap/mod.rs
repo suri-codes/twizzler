@@ -12,10 +12,7 @@ use toml_edit::DocumentMut;
 
 use super::{utils::install_build_tools, BootstrapOptions};
 use crate::{
-    toolchain::{
-        build_crtx, compress_toolchain, download_efi_files, get_abi_version, get_rust_commit,
-        move_stamp, prune_bins, prune_toolchain, write_stamp, NEXT_STAMP_PATH,
-    },
+    toolchain::{build_crtx, compress_toolchain, download_efi_files, prune_bins, prune_toolchain},
     triple::all_possible_platforms,
 };
 
@@ -304,11 +301,6 @@ pub(crate) fn do_bootstrap(cli: BootstrapOptions) -> anyhow::Result<()> {
         let _ = std::fs::remove_file(&usr_link);
         std::os::unix::fs::symlink(".", usr_link)?;
     }
-
-    let rust_commit = get_rust_commit()?;
-    let abi_version = get_abi_version()?;
-    write_stamp(NEXT_STAMP_PATH, &rust_commit, &abi_version.to_string())?;
-    move_stamp()?;
 
     if !cli.keep_old_artifacts {
         let res = std::fs::remove_dir_all("target");
