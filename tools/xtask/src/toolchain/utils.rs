@@ -103,6 +103,7 @@ pub fn prune_bins() -> anyhow::Result<()> {
     Ok(())
 }
 
+// lol
 pub fn prune_toolchain() -> anyhow::Result<()> {
     // let prune_path = format!("{}/prune.txt", get_toolchain_path()?);
     //TODO: figure out how this is going to work with multiple toolchains
