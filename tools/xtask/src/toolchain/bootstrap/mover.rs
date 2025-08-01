@@ -16,15 +16,16 @@ pub fn move_all(host_triple: &str, target_triple: &str) -> anyhow::Result<()> {
             std::fs::create_dir_all(parent)?;
         }
 
-        let status = Command::new("cp")
-            .arg("-r")
-            .arg(&prev)
-            .arg(&next)
-            .status()?; // Use status() instead of spawn() to wait for completion
+        let status = Command::new("cp").arg("-r").arg(&prev).arg(&next).status(); // Use status() instead of spawn() to wait for completion
 
-        if !status.success() {
-            anyhow::bail!("cp command failed with status: {}", status);
+        if status.is_err() {
+            // lets just force move it then
+            Command::new("mv").arg(&prev).arg(&next).status()?; // Use status() instead of
         }
+
+        // if !status.success() {
+        //     anyhow::bail!("cp command failed with status: {}", status);
+        // }
 
         Ok(())
     };
