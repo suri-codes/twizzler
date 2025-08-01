@@ -266,7 +266,7 @@ pub(crate) fn init_for_build(abi_changes_ok: bool) -> anyhow::Result<()> {
             "{}:{}:{}:{}",
             rustlib_bin.to_string_lossy(),
             lld_bin.to_string_lossy(),
-            toolchain_bin,
+            toolchain_bin.to_string_lossy(),
             // ,
             // llvm_bin.to_string_lossy(),
             //TODO: replace with the actual toolchain path

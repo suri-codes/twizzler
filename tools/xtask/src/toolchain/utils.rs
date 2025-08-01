@@ -1,6 +1,7 @@
 use std::{
     fs::{self, File},
     io::{Read, Write},
+    path::PathBuf,
     process::Command,
 };
 
@@ -92,10 +93,10 @@ pub fn prune_bins() -> anyhow::Result<()> {
         let entry = entry?;
         if let Some(name) = entry.file_name().to_str() {
             if !wanted_bins.contains(&name) {
+                let mut unwanted_bin = bin_path.clone();
+                unwanted_bin.push(name);
                 // we delete
-                Command::new("rm")
-                    .arg(format!("{}/{}", &bin_path, name))
-                    .status()?;
+                Command::new("rm").arg(unwanted_bin).status()?;
             }
         }
     }
@@ -103,6 +104,7 @@ pub fn prune_bins() -> anyhow::Result<()> {
     Ok(())
 }
 
+// lol
 pub fn prune_toolchain() -> anyhow::Result<()> {
     // let prune_path = format!("{}/prune.txt", get_toolchain_path()?);
     //TODO: figure out how this is going to work with multiple toolchains
