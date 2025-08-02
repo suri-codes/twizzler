@@ -99,8 +99,7 @@ fn build_crtx(name: &str, build_info: &Triple) -> anyhow::Result<()> {
     let sourcepath = Path::new("toolchain/src/").join(srcname);
     let objpath = format!(
         "toolchain/install/lib/rustlib/{}/lib/self-contained/{}",
-        build_info.to_string(),
-        objname
+        build_info, objname
     );
     let objpath = Path::new(&objpath);
     println!("building {:?} => {:?}", sourcepath, objpath);
@@ -179,7 +178,7 @@ pub fn set_static() {
     std::env::set_var("CARGO_TARGET_DIR", "target/static");
 }
 
-pub(crate) fn init_for_build(abi_changes_ok: bool) -> anyhow::Result<()> {
+pub(crate) fn init_for_build(_abi_changes_ok: bool) -> anyhow::Result<()> {
     //TODO: make sure we have the toolchain we need, if not then prompt to build it / error out if
     // its a non-interactive
 
@@ -232,7 +231,7 @@ pub fn set_cc(target: &Triple) -> anyhow::Result<()> {
     let sysroot_path = Path::new(&format!(
         "{}/sysroots/{}",
         toolchain_path.to_string_lossy(),
-        target.to_string()
+        target
     ))
     .canonicalize()
     .unwrap();
@@ -241,7 +240,7 @@ pub fn set_cc(target: &Triple) -> anyhow::Result<()> {
     let cflags = format!(
         "-fno-stack-protector -isysroot {} -target {} --sysroot {}",
         sysroot_path.display(),
-        target.to_string(),
+        target,
         sysroot_path.display(),
     );
     std::env::set_var("CFLAGS", &cflags);

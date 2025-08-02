@@ -229,17 +229,14 @@ pub(crate) fn do_start_qemu(cli: QemuOptions) -> anyhow::Result<()> {
         if let Some(child_stdout) = child_stdout {
             let reader = BufReader::new(child_stdout);
             let mut ret = None;
-            for line in reader.lines().into_iter() {
-                if let Ok(line) = line {
-                    println!(" ==> {}", line.trim());
-                    if line.trim().starts_with("REPORT ") {
-                        let line = line.trim().strip_prefix("REPORT ").unwrap();
-                        let report = unittest_report::Report::from_str(line.trim());
-                        if let Ok(ReportStatus::Ready(report)) = report.map(|report| report.status)
-                        {
-                            ret = Some(report);
-                            break;
-                        }
+            for line in reader.lines().map_while(Result::ok) {
+                println!(" ==> {}", line.trim());
+                if line.trim().starts_with("REPORT ") {
+                    let line = line.trim().strip_prefix("REPORT ").unwrap();
+                    let report = unittest_report::Report::from_str(line.trim());
+                    if let Ok(ReportStatus::Ready(report)) = report.map(|report| report.status) {
+                        ret = Some(report);
+                        break;
                     }
                 }
             }

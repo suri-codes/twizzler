@@ -16,13 +16,15 @@ pub fn move_all(host_triple: &str, target_triple: &str) -> anyhow::Result<()> {
             std::fs::create_dir_all(parent)?;
         }
 
-        //NOTE: this will always error because there are recursive symlinks that it
-        // refuses to follow, but will otherwise copy just fine.
-        let _ = Command::new("cp")
-            .arg("-r")
-            .arg(&prev)
-            .arg(&next)
-            .status()?;
+        let status = Command::new("cp").arg("-r").arg(&prev).arg(&next).status(); // Use status() instead of spawn() to wait for completion
+
+        //NOTE: copy will fail if there are recursive symlinks, in this case we force move
+        if status.is_err() {
+            let status = Command::new("mv").arg(&prev).arg(&next).status()?; // Use status() instead of
+            if !status.success() {
+                anyhow::bail!("mv command failed with status: {}", status);
+            }
+        }
 
         Ok(())
     };

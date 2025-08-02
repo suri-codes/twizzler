@@ -76,11 +76,8 @@ pub(crate) fn do_bootstrap(cli: BootstrapOptions) -> anyhow::Result<()> {
 
     for target_triple in all_possible_platforms() {
         let current_dir = std::env::current_dir().unwrap();
-        let sysroot_dir = current_dir.join(format!(
-            "toolchain/install/sysroots/{}",
-            target_triple.to_string()
-        ));
-        let build_dir_name = format!("build-{}", target_triple.to_string());
+        let sysroot_dir = current_dir.join(format!("toolchain/install/sysroots/{}", target_triple));
+        let build_dir_name = format!("build-{}", target_triple);
         let src_dir = current_dir.join("toolchain/src/mlibc");
         let build_dir = src_dir.join(&build_dir_name);
         let cross_file = format!("{}/meson-cross-twizzler.txt", sysroot_dir.display());
@@ -111,14 +108,14 @@ pub(crate) fn do_bootstrap(cli: BootstrapOptions) -> anyhow::Result<()> {
                 lld_path.display(),
                 sysroot_dir.display(),
                 sysroot_dir.display(),
-                target_triple.to_string()
+                target_triple
             )?;
         }
 
         writeln!(&mut cf, "[host_machine]")?;
         writeln!(&mut cf, "system = 'twizzler'")?;
-        writeln!(&mut cf, "cpu_family = '{}'", target_triple.arch.to_string())?;
-        writeln!(&mut cf, "cpu = '{}'", target_triple.arch.to_string())?;
+        writeln!(&mut cf, "cpu_family = '{}'", target_triple.arch)?;
+        writeln!(&mut cf, "cpu = '{}'", target_triple.arch)?;
         writeln!(&mut cf, "endian = 'little'")?;
         drop(cf);
 
@@ -253,11 +250,8 @@ pub(crate) fn do_bootstrap(cli: BootstrapOptions) -> anyhow::Result<()> {
 
     for target_triple in all_possible_platforms() {
         let current_dir = std::env::current_dir().unwrap();
-        let sysroot_dir = current_dir.join(format!(
-            "toolchain/install/sysroots/{}",
-            target_triple.to_string()
-        ));
-        let build_dir_name = format!("build-{}", target_triple.to_string());
+        let sysroot_dir = current_dir.join(format!("toolchain/install/sysroots/{}", target_triple));
+        let build_dir_name = format!("build-{}", target_triple);
         let src_dir = current_dir.join("toolchain/src/mlibc");
         let build_dir = src_dir.join(&build_dir_name);
         let cross_file = format!("{}/meson-cross-twizzler.txt", sysroot_dir.display());

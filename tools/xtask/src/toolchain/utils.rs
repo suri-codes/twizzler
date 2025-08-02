@@ -1,6 +1,6 @@
 use std::{
     fs::{self, File},
-    io::{Read, Write},
+    io::Write,
     path::PathBuf,
     process::Command,
 };
@@ -188,6 +188,7 @@ pub fn compress_toolchain() -> anyhow::Result<()> {
     Ok(())
 }
 
+#[expect(unused)]
 pub fn decompress_toolchain(archive_path: PathBuf) -> anyhow::Result<()> {
     // `tar --zstd -xf toolchain_arm64_Darwin_46042ba-1a94b71-4543a3e.tar.zst --strip-components=1
     // -C toolchain/`
