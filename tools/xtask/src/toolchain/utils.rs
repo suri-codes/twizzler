@@ -1,5 +1,5 @@
 use std::{
-    fs::{self, File},
+    fs::{self, remove_dir_all, File},
     io::Write,
     path::PathBuf,
     process::Command,
@@ -120,6 +120,8 @@ pub fn prune_toolchain() -> anyhow::Result<()> {
 
     submodule_deinit(&rust)?;
     submodule_deinit(&mlibc)?;
+
+    remove_dir_all("toolchain/install")?;
 
     Ok(())
 }
