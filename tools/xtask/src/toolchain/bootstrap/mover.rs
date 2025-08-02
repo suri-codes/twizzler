@@ -39,7 +39,7 @@ pub fn move_all(host_triple: &str, target_triple: &str) -> anyhow::Result<()> {
     let new_install_dir = get_toolchain_path()?;
     move_dir(old_install_dir.clone(), new_install_dir)?;
     // remove the old install dir
-    let _ = remove_dir_all(old_install_dir);
+    // let _ = remove_dir_all(old_install_dir);
 
     // llvm native runtime
     let old_llvm_rt = bootstrap::get_llvm_native_runtime(target_triple)?;
