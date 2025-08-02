@@ -60,8 +60,10 @@ pub enum ToolchainCommands {
     // purely just for testing work
     Test,
 
+    /// Prints the current active toolchain, if it exists.
     Active,
 
+    /// Lists all the installed toolchains.
     List,
 }
 
