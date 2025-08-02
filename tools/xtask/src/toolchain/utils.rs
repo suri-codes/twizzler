@@ -19,6 +19,11 @@ pub async fn download_file(client: &Client, url: &str, path: &str) -> anyhow::Re
         .send()
         .await
         .with_context(|| format!("failed to download {}", url))?;
+
+    if !res.status().is_success() {
+        anyhow::bail!("HTTP error {}: {}", res.status(), url);
+    }
+
     let total_size = res
         .content_length()
         .with_context(|| format!("failed to get content-length for {}", url))?;
@@ -186,6 +191,44 @@ pub fn compress_toolchain() -> anyhow::Result<()> {
         .arg([tag.as_str(), ".tar.zst"].concat())
         .arg(tc_path)
         .spawn()?;
+
+    Ok(())
+}
+
+pub async fn pull_toolchain() -> anyhow::Result<()> {
+    let base_repo_url = "https://github.com/Suri312006/twizzler";
+    let toolchain_tag = generate_tag()?;
+
+    println!("pulling toolchain for {}", toolchain_tag);
+
+    let archive_filename = format!("{}.tar.zst", toolchain_tag);
+    let download_url = format!(
+        "{}/releases/download/{}/{}",
+        base_repo_url, toolchain_tag, archive_filename
+    );
+
+    let client = Client::new();
+    let local_archive_path = archive_filename;
+
+    match download_file(&client, &download_url, &local_archive_path).await {
+        Ok(_) => {
+            println!("download suceeeded")
+        }
+        Err(e) => {
+            let error_msg = e.to_string();
+            if error_msg.contains("404") {
+                anyhow::bail!(
+                    "Toolchain release not found, it might not exist for this tag:\n\
+                    {}\n\
+                    You can check at {}/releases",
+                    toolchain_tag,
+                    base_repo_url
+                )
+            }
+        }
+    }
+
+    // todo extract toolchain and cleanup
 
     Ok(())
 }

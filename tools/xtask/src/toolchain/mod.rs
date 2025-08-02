@@ -70,11 +70,7 @@ pub enum ToolchainCommands {
 pub fn handle_cli(subcommand: ToolchainCommands) -> anyhow::Result<()> {
     match subcommand {
         ToolchainCommands::Bootstrap(opts) => do_bootstrap(opts),
-        ToolchainCommands::Pull => {
-            todo!("implement this later")
-            // need to pull from github releases the relevant toolchain based on the generated tag
-            // decompress toolchain
-        }
+        ToolchainCommands::Pull => tokio::runtime::Runtime::new()?.block_on(pull_toolchain()),
         ToolchainCommands::Prune => prune_toolchain(),
         ToolchainCommands::Test => Ok(()),
         ToolchainCommands::Active => {
