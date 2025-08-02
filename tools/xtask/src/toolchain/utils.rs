@@ -143,8 +143,6 @@ pub fn generate_tag() -> anyhow::Result<String> {
 
     let tag = format!("toolchain_{arch}_{os}_{hash}");
 
-    println!("generated tag:{tag}");
-
     Ok(tag)
 }
 

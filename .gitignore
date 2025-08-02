@@ -1,5 +1,6 @@
 target
-toolchain/install
+toolchain/toolchain*
+*.tar.zst
 .vscode
 workspace.code-workspace
 .target-xtask

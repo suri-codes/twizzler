@@ -59,6 +59,10 @@ pub enum ToolchainCommands {
     Prune,
     // purely just for testing work
     Test,
+
+    Active,
+
+    List,
 }
 
 pub fn handle_cli(subcommand: ToolchainCommands) -> anyhow::Result<()> {
@@ -71,41 +75,12 @@ pub fn handle_cli(subcommand: ToolchainCommands) -> anyhow::Result<()> {
         }
         ToolchainCommands::Prune => prune_toolchain(),
         ToolchainCommands::Test => Ok(()),
+        ToolchainCommands::Active => {
+            let tc = get_toolchain_path()?.canonicalize();
+            Ok(())
+        }
+        ToolchainCommands::List => Ok(()),
     }
-}
-
-pub fn needs_reinstall() -> anyhow::Result<bool> {
-    Ok(false)
-
-    // let stamp = std::fs::metadata(STAMP_PATH);
-    // if stamp.is_err() {
-    //     return Ok(true);
-    // }
-    // let stamp_data = std::fs::read_to_string(STAMP_PATH)?;
-    // let vers = stamp_data.split("/").collect::<Vec<_>>();
-    // if vers.len() != 2 {
-    //     eprintln!("WARNING -- stamp file has invalid format.");
-    //     return Ok(true);
-    // }
-
-    // let rust_commit = get_rust_commit()?;
-    // let abi_version = get_abi_version()?;
-    // // TODO: in the future, we'll want to do a full ABI semver req check here. For now
-    // // we'll just do simple equality checking, especially during development when the
-    // // ABI may be changing often anyway, and is pre-1.0.
-    // if vers[0] != rust_commit || vers[1] != abi_version.to_string() {
-    //     eprintln!("WARNING -- Your toolchain is out of date. This is probably because");
-    //     eprintln!("        -- the repository updated to a new rustc commit, or the ABI");
-    //     eprintln!("        -- files were updated.");
-    //     eprintln!("Installed rust toolchain commit: {}", vers[0]);
-    //     eprintln!("toolchain/src/rust: HEAD commit: {}", rust_commit);
-    //     eprintln!("Installed toolchain has ABI version: {}", vers[1]);
-    //     eprintln!("src/abi/rt-abi provides ABI version: {}", abi_version);
-    //     eprintln!("note -- currently the ABI version check requires exact match, not semver.");
-    //     return Ok(true);
-    // }
-
-    // Ok(false)
 }
 
 fn build_crtx(name: &str, build_info: &Triple) -> anyhow::Result<()> {
@@ -195,17 +170,15 @@ pub fn set_static() {
 }
 
 pub(crate) fn init_for_build(abi_changes_ok: bool) -> anyhow::Result<()> {
-    if !abi_changes_ok {
-        eprintln!("!! You'll need to recompile your toolchain. Running `cargo bootstrap` should resolve the issue.");
-        anyhow::bail!("toolchain needs reinstall: run cargo bootstrap.");
-    }
+    //TODO: make sure we have the toolchain we need, if not then prompt to build it / error out if
+    // its a non-interactive
 
-    let python_path = get_python_path()?;
-    let builtin_headers = get_builtin_headers()?;
-    let compiler_rt_path = get_compiler_rt_path()?;
-    let lld_bin = get_lld_bin(guess_host_triple().unwrap())?;
-    let rustlib_bin = get_rustlib_bin(guess_host_triple().unwrap())?;
-    let toolchain_bin = get_bin_path()?;
+    let python_path = get_python_path()?.canonicalize()?;
+    let builtin_headers = get_builtin_headers()?.canonicalize()?;
+    let compiler_rt_path = get_compiler_rt_path()?.canonicalize()?;
+    let lld_bin = get_lld_bin(guess_host_triple().unwrap())?.canonicalize()?;
+    let rustlib_bin = get_rustlib_bin(guess_host_triple().unwrap())?.canonicalize()?;
+    let toolchain_bin = get_bin_path()?.canonicalize()?;
     let path = std::env::var("PATH").unwrap();
 
     std::env::set_var("RUSTC", &get_rustc_path()?);
