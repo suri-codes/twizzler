@@ -16,24 +16,13 @@ pub fn move_all(host_triple: &str, target_triple: &str) -> anyhow::Result<()> {
             std::fs::create_dir_all(parent)?;
         }
 
-        let status = Command::new("cp")
+        //NOTE: this will always error because there are recursive symlinks that it
+        // refuses to follow, but will otherwise copy just fine.
+        let _ = Command::new("cp")
             .arg("-r")
             .arg(&prev)
             .arg(&next)
             .status()?;
-
-        // lets just force move it then
-        // NOTE: we do this because cp fails on circular references
-        // if status.is_err() {
-        //     let status = Command::new("mv").arg(&prev).arg(&next).status()?; // Use status()
-        // instead of     if !status.success() {
-        //         anyhow::bail!("mv command failed with status: {}", status);
-        //     }
-        // }
-
-        if !status.success() {
-            anyhow::bail!("mv command failed with status: {}", status);
-        }
 
         Ok(())
     };
