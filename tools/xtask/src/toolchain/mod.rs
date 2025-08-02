@@ -76,10 +76,18 @@ pub fn handle_cli(subcommand: ToolchainCommands) -> anyhow::Result<()> {
         ToolchainCommands::Prune => prune_toolchain(),
         ToolchainCommands::Test => Ok(()),
         ToolchainCommands::Active => {
-            let tc = get_toolchain_path()?.canonicalize();
+            match get_toolchain_path()?.canonicalize() {
+                Ok(_) => {
+                    println!("{}", generate_tag()?);
+                }
+
+                Err(_) => {
+                    eprintln!("Active toolchain not found!")
+                }
+            }
             Ok(())
         }
-        ToolchainCommands::List => Ok(()),
+        ToolchainCommands::List => todo!("implement dis later"),
     }
 }
 
