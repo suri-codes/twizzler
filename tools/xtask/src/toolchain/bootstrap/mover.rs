@@ -5,9 +5,9 @@ use crate::toolchain::{get_toolchain_path, pathfinding};
 
 pub fn move_all(host_triple: &str, target_triple: &str) -> anyhow::Result<()> {
     let move_dir = |prev: PathBuf, next: PathBuf| -> anyhow::Result<()> {
-        println!("moving {} to {}", prev.display(), next.display());
+        println!("Moving {} to {}", prev.display(), next.display());
 
-        // Remove destination if it exists
+        // remove dest if it exists
         if next.exists() {
             let _ = std::fs::remove_dir_all(&next);
         }
@@ -16,16 +16,24 @@ pub fn move_all(host_triple: &str, target_triple: &str) -> anyhow::Result<()> {
             std::fs::create_dir_all(parent)?;
         }
 
-        let status = Command::new("cp").arg("-r").arg(&prev).arg(&next).status(); // Use status() instead of spawn() to wait for completion
+        let status = Command::new("cp")
+            .arg("-r")
+            .arg(&prev)
+            .arg(&next)
+            .status()?;
 
-        if status.is_err() {
-            // lets just force move it then
-            Command::new("mv").arg(&prev).arg(&next).status()?; // Use status() instead of
-        }
-
-        // if !status.success() {
-        //     anyhow::bail!("cp command failed with status: {}", status);
+        // lets just force move it then
+        // NOTE: we do this because cp fails on circular references
+        // if status.is_err() {
+        //     let status = Command::new("mv").arg(&prev).arg(&next).status()?; // Use status()
+        // instead of     if !status.success() {
+        //         anyhow::bail!("mv command failed with status: {}", status);
+        //     }
         // }
+
+        if !status.success() {
+            anyhow::bail!("mv command failed with status: {}", status);
+        }
 
         Ok(())
     };
@@ -40,7 +48,7 @@ pub fn move_all(host_triple: &str, target_triple: &str) -> anyhow::Result<()> {
     let new_install_dir = get_toolchain_path()?;
     move_dir(old_install_dir.clone(), new_install_dir)?;
     // remove the old install dir
-    // let _ = remove_dir_all(old_install_dir);
+    let _ = remove_dir_all(old_install_dir);
 
     // llvm native runtime
     let old_llvm_rt = bootstrap::get_llvm_native_runtime(target_triple)?;
@@ -67,20 +75,10 @@ pub fn move_all(host_triple: &str, target_triple: &str) -> anyhow::Result<()> {
     let new_compiler_rt = pathfinding::get_compiler_rt_path()?;
     move_dir(old_compiler_rt, new_compiler_rt)?;
 
-    // llvm bin
-    // let old_llvm_bin = bootstrap::get_llvm_bin(host_triple)?;
-    // let new_llvm_bin = pathfinding::get_llvm_bin(host_triple)?;
-    // move_dir(old_llvm_bin, new_llvm_bin)?;
-
     // lld bin
     let old_lld_bin = bootstrap::get_lld_bin(host_triple)?;
     let new_lld_bin = pathfinding::get_lld_bin(host_triple)?;
     move_dir(old_lld_bin, new_lld_bin)?;
-
-    // builtin headers
-    // let old_builtins = bootstrap::get_builtin_headers()?;
-    // let new_builtins = pathfinding::get_builtin_headers()?;
-    // move_dir(old_builtins, new_builtins)?;
 
     Ok(())
 }
