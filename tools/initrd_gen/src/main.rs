@@ -63,7 +63,7 @@ fn main() {
     archive.mode(tar::HeaderMode::Deterministic);
 
     for file in files.unwrap_or_default().map(|s| s.as_str()) {
-        let mut f = File::open(file).expect(&format!("failed to open file: {}", file));
+        let mut f = File::open(file).unwrap_or_else(|_| panic!("failed to open file: {}", file));
         archive
             .append_file(
                 Path::new(file)

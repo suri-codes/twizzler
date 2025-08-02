@@ -83,13 +83,13 @@ fn create_uefi_disk_image(
     efi_binary: String,
 ) -> anyhow::Result<()> {
     let efi_file = Path::new(&efi_binary);
-    let efi_size = fs::metadata(&efi_file)
+    let efi_size = fs::metadata(efi_file)
         .context("failed to read metadata of efi file")?
         .len();
-    let kernel_size = fs::metadata(&kernel_binary_path)
+    let kernel_size = fs::metadata(kernel_binary_path)
         .context("failed to read metadata of kernel file")?
         .len();
-    let initrd_size = fs::metadata(&initrd_path)
+    let initrd_size = fs::metadata(initrd_path)
         .context("failed to read metadata of initrd file")?
         .len();
 
@@ -163,15 +163,15 @@ verbose: yes
         let boot_bin_path = Path::new("efi/boot/").join(efi_file.file_name().unwrap());
         let mut boot_bin = root_dir.create_file(boot_bin_path.as_path().to_str().unwrap())?;
         boot_bin.truncate()?;
-        io::copy(&mut fs::File::open(&efi_file)?, &mut boot_bin)?;
+        io::copy(&mut fs::File::open(efi_file)?, &mut boot_bin)?;
         let mut kernel = root_dir.create_file("kernel.elf")?;
         kernel.truncate()?;
-        io::copy(&mut fs::File::open(&kernel_binary_path)?, &mut kernel)?;
+        io::copy(&mut fs::File::open(kernel_binary_path)?, &mut kernel)?;
         let mut cfg = root_dir.create_file("limine.conf")?;
         cfg.write_all(cfg_data.as_bytes())?;
         let mut initrd = root_dir.create_file("initrd")?;
         initrd.truncate()?;
-        io::copy(&mut fs::File::open(&initrd_path)?, &mut initrd)?;
+        io::copy(&mut fs::File::open(initrd_path)?, &mut initrd)?;
 
         fat_path
     };
@@ -184,7 +184,7 @@ verbose: yes
             .truncate(true)
             .read(true)
             .write(true)
-            .open(&image_path)
+            .open(image_path)
             .context("failed to create UEFI disk image")?;
 
         let partition_size: u64 = fs::metadata(&fat_file_path)

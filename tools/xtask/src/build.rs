@@ -74,7 +74,7 @@ fn get_cli_configs(
     let target_machine = build_config.machine.to_string();
 
     // start building the config
-    let mut configs = format!(r#"target.{}.rustflags=["#, triple.to_string());
+    let mut configs = format!(r#"target.{}.rustflags=["#, triple);
 
     // add in definition for machine target
     write!(configs, r#""--cfg=machine=\"{}\"""#, target_machine)?;
@@ -608,5 +608,3 @@ pub(crate) fn do_check(cli: CheckOptions) -> anyhow::Result<()> {
     )?;
     Ok(())
 }
-
-

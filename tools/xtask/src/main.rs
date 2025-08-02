@@ -23,16 +23,16 @@ enum Profile {
     Release,
 }
 
-impl ToString for Profile {
-    fn to_string(&self) -> String {
-        match self {
+impl std::fmt::Display for Profile {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let str = match self {
             Profile::Debug => "debug",
             Profile::Release => "release",
-        }
-        .to_string()
+        };
+
+        write!(f, "{}", str)
     }
 }
-
 impl Default for Profile {
     fn default() -> Self {
         Self::Debug
@@ -235,10 +235,7 @@ fn print_status_line(name: &str, config: Option<&BuildConfig>) {
     if let Some(config) = config {
         eprintln!(
             "=== BUILDING {} [{}-{}::{}]",
-            name,
-            config.arch.to_string(),
-            config.machine.to_string(),
-            config.profile.to_string()
+            name, config.arch, config.machine, config.profile
         );
     } else {
         eprintln!("=== BUILDING {} [build::release]", name);

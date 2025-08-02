@@ -1,4 +1,4 @@
-use std::{env::current_dir, fs::remove_dir_all, path::PathBuf, process::Command};
+use std::{env::current_dir, path::PathBuf, process::Command};
 
 use super::paths as bootstrap;
 use crate::toolchain::{get_toolchain_path, pathfinding};

@@ -169,7 +169,7 @@ fn build_initrd(cli: &ImageOptions, comp: &TwizzlerCompilation) -> anyhow::Resul
             .expect("initrd specification must be an array")
         {
             let spec = item.as_str().expect("initrd item must be a string");
-            let split: Vec<_> = spec.split(':').into_iter().collect();
+            let split: Vec<_> = spec.split(':').collect();
             if split.len() != 2 {
                 anyhow::bail!("initrd item must be of the form `x:y'");
             }
@@ -212,7 +212,7 @@ fn build_initrd(cli: &ImageOptions, comp: &TwizzlerCompilation) -> anyhow::Resul
                 initrd_files.push(test_file_path);
             }
         } else {
-            assert!(!cli.tests && !cli.benches && !cli.bench.is_some());
+            assert!(!cli.tests && !cli.benches && cli.bench.is_none());
         }
 
         let montest = comp
@@ -223,7 +223,7 @@ fn build_initrd(cli: &ImageOptions, comp: &TwizzlerCompilation) -> anyhow::Resul
                     .iter()
                     .find_map(|p| {
                         if p.unit.pkg.name() == "montest" {
-                            Some(p.path.file_name().unwrap().to_string_lossy().to_owned())
+                            Some(p.path.file_name().unwrap().to_string_lossy().clone())
                         } else {
                             None
                         }
@@ -303,7 +303,6 @@ pub(crate) fn do_make_image(cli: ImageOptions) -> anyhow::Result<ImageInfo> {
         tc_path
     };
 
-    
     let image_path = get_genfile_path(&comp, "disk.img");
     println!(
         "kernel: {:?}, cmdline: {}",
