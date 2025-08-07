@@ -97,238 +97,242 @@ impl QemuCommand {
                 .status()
                 .expect("failed to create disk image")
                 .success()
-        {
-            panic!("failed to run mke2fs on nvme.img");
-        }
+            {
+                panic!("failed to run mke2fs on nvme.img");
+            }
 
-        self.cmd
-            .arg("-drive")
-            .arg("file=target/nvme.img,if=none,id=nvme")
-            .arg("-device")
-            .arg("nvme,serial=deadbeef,drive=nvme");
+            self.cmd
+                .arg("-drive")
+                .arg("file=target/nvme.img,if=none,id=nvme")
+                .arg("-device")
+                .arg("nvme,serial=deadbeef,drive=nvme");
 
-        self.cmd
-            .arg("-device")
-            .arg("virtio-pmem-pci,memdev=dataset,id=nv2");
-        self.cmd.arg("-object").arg(
+            self.cmd
+                .arg("-device")
+                .arg("virtio-pmem-pci,memdev=dataset,id=nv2");
+            self.cmd.arg("-object").arg(
             "memory-backend-file,id=dataset,size=107374182400,mem-path=target/nvme.img,share=on",
         );
 
-        self.cmd.arg("-device").arg("virtio-net-pci,netdev=net0");
+            self.cmd.arg("-device").arg("virtio-net-pci,netdev=net0");
 
-        let port = {
-            let listener = match TcpListener::bind("0.0.0.0:5555") {
-                Ok(l) => l,
-                Err(_) => {
-                    println!(
-                        "Failed to allocate default port 5555 on host, dynamically assigning."
-                    );
-                    match TcpListener::bind("0.0.0.0:0") {
-                        Ok(l) => l,
-                        Err(e) => {
-                            panic!("Port allocation for Qemu failed! {}", e);
+            let port = {
+                let listener = match TcpListener::bind("0.0.0.0:5555") {
+                    Ok(l) => l,
+                    Err(_) => {
+                        println!(
+                            "Failed to allocate default port 5555 on host, dynamically assigning."
+                        );
+                        match TcpListener::bind("0.0.0.0:0") {
+                            Ok(l) => l,
+                            Err(e) => {
+                                panic!("Port allocation for Qemu failed! {}", e);
+                            }
+                        }
+                    }
+                };
+
+                listener
+                    .local_addr()
+                    .expect("Expected to get local address.")
+                    .port()
+            };
+
+            println!("Allocated port {} for Qemu!", port);
+
+            self.cmd
+                .arg("-netdev")
+                .arg(format!("user,id=net0,hostfwd=tcp::{}-:5555", port));
+
+            self.cmd
+                .arg("--no-reboot") // exit instead of rebooting
+                .arg("-serial")
+                .arg("mon:stdio");
+            //-serial mon:stdio creates a multiplexed stdio backend connected
+            // to the serial port and the QEMU monitor, and
+            // -nographic also multiplexes the console and the monitor to stdio.
+
+            println!("GDB debugging port: {}", options.gdb);
+            if options.gdb != 0 {
+                self.cmd
+                    .arg("-serial")
+                    .arg(&format!("tcp::{},server,nowait", options.gdb));
+            }
+
+            // add additional options for qemu
+            self.cmd.args(&options.qemu_options);
+
+            println!("qemu: {:?}", self.cmd);
+
+            //self.cmd.arg("-smp").arg("4,sockets=1,cores=2,threads=2");
+        }
+
+        fn arch_config(&mut self, options: &QemuOptions) {
+            let mut ovmf = get_toolchain_path().unwrap();
+
+            match self.arch {
+                Arch::X86_64 => {
+                    ovmf.push("OVMF.fd");
+                    // bios, platform
+                    self.cmd.arg("-bios").arg(ovmf);
+                    self.cmd.arg("-machine").arg("q35,nvdimm=on");
+
+                    // add qemu exit device for testing
+                    if options.tests || options.benches || options.bench.is_some() {
+                        // x86 specific
+                        self.cmd
+                            .arg("-device")
+                            .arg("isa-debug-exit,iobase=0xf4,iosize=0x04");
+                    }
+
+                    let has_kvm = std::env::consts::ARCH == self.arch.to_string()
+                        && Path::new("/dev/kvm").exists();
+
+                    if has_kvm {
+                        self.cmd.arg("-enable-kvm");
+                        self.cmd
+                            .arg("-cpu")
+                            .arg("host,+x2apic,+tsc-deadline,+invtsc,+tsc,+rdtscp");
+                    } else {
+                        self.cmd.arg("-cpu").arg("max");
+                    }
+
+                    // Connect some nvdimms
+                    /*
+                    self.cmd.arg("-object").arg(format!(
+                        "memory-backend-file,id=mem1,share=on,mem-path={},size=4G",
+                        make_path(build_info, true, "pmem.img")
+                    ));
+                    self.cmd.arg("-device").arg("nvdimm,id=nvdimm1,memdev=mem1");
+                    */
+                }
+                Arch::Aarch64 => {
+                    ovmf.push("OVMF-AA64.fd");
+                    self.cmd.arg("-bios").arg(ovmf);
+                    self.cmd.arg("-net").arg("none");
+                    if self.machine == Machine::Morello {
+                        self.cmd.arg("-machine").arg("virt,gic-version=3");
+                        self.cmd.arg("-cpu").arg("morello");
+                    } else {
+                        // use qemu virt machine by default
+                        // virt uses GICv2 by default
+                        self.cmd.arg("-machine").arg("virt");
+                        self.cmd.arg("-cpu").arg("cortex-a72");
+                    }
+                    self.cmd.arg("-nographic");
+                }
+            }
+        }
+    }
+
+    pub(crate) fn do_start_qemu(cli: QemuOptions) -> anyhow::Result<()> {
+        let image_info = crate::image::do_make_image((&cli).into())?;
+
+        let mut run_cmd = QemuCommand::new(&cli);
+        run_cmd.config(&cli, image_info);
+
+        use wait_timeout::ChildExt;
+        let timeout = cli.tests;
+        let heartbeat = cli.tests;
+        if heartbeat {
+            run_cmd.cmd.stdin(Stdio::piped());
+            run_cmd.cmd.stdout(Stdio::piped());
+        }
+
+        let mut child = run_cmd.cmd.spawn()?;
+
+        let mut child_stdin = child.stdin.take();
+        let child_stdout = child.stdout.take();
+
+        let reader_thread = std::thread::spawn(|| {
+            if let Some(child_stdout) = child_stdout {
+                let reader = BufReader::new(child_stdout);
+                let mut ret = None;
+                for line in reader.lines().map_while(Result::ok) {
+                    println!(" ==> {}", line.trim());
+                    if line.trim().starts_with("REPORT ") {
+                        let line = line.trim().strip_prefix("REPORT ").unwrap();
+                        let report = unittest_report::Report::from_str(line.trim());
+                        if let Ok(ReportStatus::Ready(report)) = report.map(|report| report.status)
+                        {
+                            ret = Some(report);
+                            break;
                         }
                     }
                 }
-            };
-
-            listener
-                .local_addr()
-                .expect("Expected to get local address.")
-                .port()
-        };
-
-        println!("Allocated port {} for Qemu!", port);
-
-        self.cmd
-            .arg("-netdev")
-            .arg(format!("user,id=net0,hostfwd=tcp::{}-:5555", port));
-
-        self.cmd
-            .arg("--no-reboot") // exit instead of rebooting
-            .arg("-serial")
-            .arg("mon:stdio");
-        //-serial mon:stdio creates a multiplexed stdio backend connected
-        // to the serial port and the QEMU monitor, and
-        // -nographic also multiplexes the console and the monitor to stdio.
-
-        println!("GDB debugging port: {}", options.gdb);
-        if options.gdb != 0 {
-            self.cmd
-                .arg("-serial")
-                .arg(&format!("tcp::{},server,nowait", options.gdb));
-        }
-
-        // add additional options for qemu
-        self.cmd.args(&options.qemu_options);
-
-        println!("qemu: {:?}", self.cmd);
-
-        //self.cmd.arg("-smp").arg("4,sockets=1,cores=2,threads=2");
-    }
-
-    fn arch_config(&mut self, options: &QemuOptions) {
-        let mut ovmf = get_toolchain_path().unwrap();
-
-        match self.arch {
-            Arch::X86_64 => {
-                ovmf.push("OVMF.fd");
-                // bios, platform
-                self.cmd.arg("-bios").arg(ovmf);
-                self.cmd.arg("-machine").arg("q35,nvdimm=on");
-
-                // add qemu exit device for testing
-                if options.tests || options.benches || options.bench.is_some() {
-                    // x86 specific
-                    self.cmd
-                        .arg("-device")
-                        .arg("isa-debug-exit,iobase=0xf4,iosize=0x04");
-                }
-
-                let has_kvm = std::env::consts::ARCH == self.arch.to_string()
-                    && Path::new("/dev/kvm").exists();
-
-                if has_kvm {
-                    self.cmd.arg("-enable-kvm");
-                    self.cmd
-                        .arg("-cpu")
-                        .arg("host,+x2apic,+tsc-deadline,+invtsc,+tsc,+rdtscp");
-                } else {
-                    self.cmd.arg("-cpu").arg("max");
-                }
-
-                // Connect some nvdimms
-                /*
-                self.cmd.arg("-object").arg(format!(
-                    "memory-backend-file,id=mem1,share=on,mem-path={},size=4G",
-                    make_path(build_info, true, "pmem.img")
-                ));
-                self.cmd.arg("-device").arg("nvdimm,id=nvdimm1,memdev=mem1");
-                */
+                ret
+            } else {
+                None
             }
-            Arch::Aarch64 => {
-                ovmf.push("OVMF-AA64.fd");
-                self.cmd.arg("-bios").arg(ovmf);
-                self.cmd.arg("-net").arg("none");
-                if self.machine == Machine::Morello {
-                    self.cmd.arg("-machine").arg("virt,gic-version=3");
-                    self.cmd.arg("-cpu").arg("morello");
-                } else {
-                    // use qemu virt machine by default
-                    // virt uses GICv2 by default
-                    self.cmd.arg("-machine").arg("virt");
-                    self.cmd.arg("-cpu").arg("cortex-a72");
-                }
-                self.cmd.arg("-nographic");
-            }
-        }
-    }
-}
+        });
 
-pub(crate) fn do_start_qemu(cli: QemuOptions) -> anyhow::Result<()> {
-    let image_info = crate::image::do_make_image((&cli).into())?;
-
-    let mut run_cmd = QemuCommand::new(&cli);
-    run_cmd.config(&cli, image_info);
-
-    use wait_timeout::ChildExt;
-    let timeout = cli.tests;
-    let heartbeat = cli.tests;
-    if heartbeat {
-        run_cmd.cmd.stdin(Stdio::piped());
-        run_cmd.cmd.stdout(Stdio::piped());
-    }
-
-    let mut child = run_cmd.cmd.spawn()?;
-
-    let mut child_stdin = child.stdin.take();
-    let child_stdout = child.stdout.take();
-
-    let reader_thread = std::thread::spawn(|| {
-        if let Some(child_stdout) = child_stdout {
-            let reader = BufReader::new(child_stdout);
-            let mut ret = None;
-            for line in reader.lines().map_while(Result::ok) {
-                println!(" ==> {}", line.trim());
-                if line.trim().starts_with("REPORT ") {
-                    let line = line.trim().strip_prefix("REPORT ").unwrap();
-                    let report = unittest_report::Report::from_str(line.trim());
-                    if let Ok(ReportStatus::Ready(report)) = report.map(|report| report.status) {
-                        ret = Some(report);
-                        break;
+        let exit_status = if timeout {
+            if heartbeat {
+                let mut i = 0;
+                loop {
+                    if let Some(es) = child.wait_timeout(Duration::from_secs(15))? {
+                        break Some(es);
+                    }
+                    child_stdin
+                        .as_mut()
+                        .unwrap()
+                        .write_all(b"status\n")
+                        .unwrap();
+                    i += 1;
+                    if i > 10 {
+                        break None;
                     }
                 }
-            }
-            ret
-        } else {
-            None
-        }
-    });
-
-    let exit_status = if timeout {
-        if heartbeat {
-            let mut i = 0;
-            loop {
-                if let Some(es) = child.wait_timeout(Duration::from_secs(15))? {
-                    break Some(es);
-                }
-                child_stdin
-                    .as_mut()
-                    .unwrap()
-                    .write_all(b"status\n")
-                    .unwrap();
-                i += 1;
-                if i > 10 {
-                    break None;
-                }
-            }
-        } else {
-            child.wait_timeout(Duration::from_secs(60))?
-        }
-    } else {
-        Some(child.wait()?)
-    };
-
-    let Some(exit_status) = exit_status else {
-        eprintln!("qemu timed out");
-        child.kill().unwrap();
-        std::process::exit(34);
-    };
-
-    let report = reader_thread.join().ok().flatten();
-    if let Some(report) = report {
-        let successes = report.tests.iter().filter(|t| t.passed).count();
-        let total = report.tests.len();
-        println!(
-            "TEST RESULTS: {} passed, {} failed, {} total -- time: {:2} seconds",
-            successes,
-            total - successes,
-            total,
-            report.time.as_millis() as f64 / 1000.0,
-        );
-    } else if cli.tests {
-        eprintln!("qemu didn't produce report");
-        std::process::exit(34);
-    }
-
-    if exit_status.success() {
-        if cli.repeat {
-            return do_start_qemu(cli);
-        }
-        Ok(())
-    } else {
-        if cli.tests || cli.benches || cli.bench.is_some() {
-            if exit_status.code().unwrap() == 1 {
-                eprintln!("qemu reports tests passed");
-                if cli.repeat {
-                    return do_start_qemu(cli);
-                }
-                std::process::exit(0);
             } else {
-                eprintln!("qemu reports tests failed");
-                std::process::exit(33);
+                child.wait_timeout(Duration::from_secs(60))?
             }
+        } else {
+            Some(child.wait()?)
+        };
+
+        let Some(exit_status) = exit_status else {
+            eprintln!("qemu timed out");
+            child.kill().unwrap();
+            std::process::exit(34);
+        };
+
+        let report = reader_thread.join().ok().flatten();
+        if let Some(report) = report {
+            let successes = report.tests.iter().filter(|t| t.passed).count();
+            let total = report.tests.len();
+            println!(
+                "TEST RESULTS: {} passed, {} failed, {} total -- time: {:2} seconds",
+                successes,
+                total - successes,
+                total,
+                report.time.as_millis() as f64 / 1000.0,
+            );
+        } else if cli.tests {
+            eprintln!("qemu didn't produce report");
+            std::process::exit(34);
         }
-        anyhow::bail!("qemu return with error");
+
+        if exit_status.success() {
+            if cli.repeat {
+                return do_start_qemu(cli);
+            }
+            Ok(())
+        } else {
+            if cli.tests || cli.benches || cli.bench.is_some() {
+                if exit_status.code().unwrap() == 1 {
+                    eprintln!("qemu reports tests passed");
+                    if cli.repeat {
+                        return do_start_qemu(cli);
+                    }
+                    std::process::exit(0);
+                } else {
+                    eprintln!("qemu reports tests failed");
+                    std::process::exit(33);
+                }
+            }
+            anyhow::bail!("qemu return with error");
+
+            panic!();
+        }
     }
 }
