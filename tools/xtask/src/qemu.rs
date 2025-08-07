@@ -48,7 +48,7 @@ impl QemuCommand {
 
     pub fn config(&mut self, options: &QemuOptions, image_info: ImageInfo) {
         // Set up the basic stuff, memory and bios, etc.
-        self.cmd.arg("-m").arg("4096,slots=4,maxmem=8G");
+        self.cmd.arg("-m").arg("80000,slots=4,maxmem=512G");
 
         // configure architechture specific parameters
         self.arch_config(options);
@@ -81,13 +81,17 @@ impl QemuCommand {
             "PATH",
             format!("{}:{}", std::env::var("PATH").unwrap(), "/usr/sbin/"),
         );
-        if !already_exists
-            && !Command::new("mke2fs")
+        let fs_type = "ext2";
+        if !already_exists {
+            println!("creating {} FS for image", fs_type);
+            if !Command::new("mke2fs")
                 .arg("-b")
                 .arg("4096")
                 .arg("-qF")
                 .arg("-E")
-                .arg("test_fs")
+                .arg("test_fs,lazy_itable_init=0,lazy_journal_init=0")
+                .arg("-t")
+                .arg(fs_type)
                 .arg("target/nvme.img")
                 .arg("10000000")
                 .status()
@@ -102,6 +106,13 @@ impl QemuCommand {
             .arg("file=target/nvme.img,if=none,id=nvme")
             .arg("-device")
             .arg("nvme,serial=deadbeef,drive=nvme");
+
+        self.cmd
+            .arg("-device")
+            .arg("virtio-pmem-pci,memdev=dataset,id=nv2");
+        self.cmd.arg("-object").arg(
+            "memory-backend-file,id=dataset,size=107374182400,mem-path=target/nvme.img,share=on",
+        );
 
         self.cmd.arg("-device").arg("virtio-net-pci,netdev=net0");
 
@@ -135,15 +146,23 @@ impl QemuCommand {
 
         self.cmd
             .arg("--no-reboot") // exit instead of rebooting
-            //.arg("-s") // shorthand for -gdb tcp::1234
             .arg("-serial")
             .arg("mon:stdio");
         //-serial mon:stdio creates a multiplexed stdio backend connected
         // to the serial port and the QEMU monitor, and
         // -nographic also multiplexes the console and the monitor to stdio.
 
+        println!("GDB debugging port: {}", options.gdb);
+        if options.gdb != 0 {
+            self.cmd
+                .arg("-serial")
+                .arg(&format!("tcp::{},server,nowait", options.gdb));
+        }
+
         // add additional options for qemu
         self.cmd.args(&options.qemu_options);
+
+        println!("qemu: {:?}", self.cmd);
 
         //self.cmd.arg("-smp").arg("4,sockets=1,cores=2,threads=2");
     }
@@ -173,7 +192,7 @@ impl QemuCommand {
                     self.cmd.arg("-enable-kvm");
                     self.cmd
                         .arg("-cpu")
-                        .arg("host,+x2apic,+tsc-deadline,+invtsc,+tsc,+tsc_scale,+rdtscp");
+                        .arg("host,+x2apic,+tsc-deadline,+invtsc,+tsc,+rdtscp");
                 } else {
                     self.cmd.arg("-cpu").arg("max");
                 }
