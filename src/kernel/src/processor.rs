@@ -98,6 +98,12 @@ impl SchedulingQueues {
         } else {
             false
         };
+        if thread.sched_link.is_linked() {
+            panic!(
+                "tried to reinsert thread that is already linked: {}",
+                thread.id()
+            );
+        }
         self.queues[queue_number].push_back(thread);
         needs_preempt
     }
@@ -232,7 +238,7 @@ impl Processor {
             .store(true, core::sync::atomic::Ordering::SeqCst);
     }
 
-    fn is_running(&self) -> bool {
+    pub fn is_running(&self) -> bool {
         self.running.load(Ordering::SeqCst)
     }
 
